@@ -156,7 +156,7 @@
   "backupExport": "Export & import",
   "backupExportDesc": "Take your cassettes with you — audio, transcripts and summaries — or bring them back",
   "aboutPrivacy": "About & privacy",
-  "aboutPrivacyDesc": "Audio never leaves this device",
+  "aboutPrivacyDesc": "Where audio goes, and where it does not",
   "aboutTitle": "ABOUT & PRIVACY",
   "aboutBody": "Diktafon listens, writes and summarises right here on your phone.\n\nRecordings, transcripts and summaries never leave the device on their own. There is no account, no cloud and no analytics. Data leaves only through a backup or export you start yourself — or, in this fork, to the laptop address you set up under Laptop sync, and to nowhere else.",
   "aboutOpenSource": "Diktafon is free and open source:",

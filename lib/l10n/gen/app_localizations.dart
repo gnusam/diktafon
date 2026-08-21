@@ -646,7 +646,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutPrivacyDesc.
   ///
   /// In en, this message translates to:
-  /// **'Audio never leaves this device'**
+  /// **'Where audio goes, and where it does not'**
   String get aboutPrivacyDesc;
 
   /// No description provided for @aboutTitle.

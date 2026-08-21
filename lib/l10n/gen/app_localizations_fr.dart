@@ -330,7 +330,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aboutPrivacy => 'À propos & confidentialité';
 
   @override
-  String get aboutPrivacyDesc => 'L\'audio ne quitte jamais cet appareil';
+  String get aboutPrivacyDesc => 'Où va l\'audio, et où il ne va pas';
 
   @override
   String get aboutTitle => 'À PROPOS & CONFIDENTIALITÉ';

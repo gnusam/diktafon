@@ -54,6 +54,13 @@ HOSTNAME = os.environ.get("DIKTAFON_HOSTNAME", socket.gethostname())
 # Where the phone's "put this cassette in that project" answers are kept.
 ROUTES = Path(os.environ.get(
     "DIKTAFON_ROUTES", str(INBOX / ".routes.json"))).expanduser()
+# In a container the paths above are mount points; these are the same
+# places as the laptop's own user sees them, and the only ones worth
+# showing on the phone ("/projects/life/…" means nothing to anybody).
+PROJECTS_SHOWN = Path(
+    os.environ.get("DIKTAFON_PROJECTS_DISPLAY") or PROJECTS).expanduser()
+INBOX_SHOWN = Path(
+    os.environ.get("DIKTAFON_INBOX_DISPLAY") or INBOX).expanduser()
 
 # One cassette directory is rewritten in full on every arrival; two memos
 # landing at once must not interleave their rebuilds.
@@ -241,6 +248,16 @@ def set_route(slug: str, choice: str) -> Path:
     return after
 
 
+def shown(path: Path) -> str:
+    """A path as the laptop's user would type it."""
+    for real, display in ((PROJECTS, PROJECTS_SHOWN), (INBOX, INBOX_SHOWN)):
+        try:
+            return str(display / path.relative_to(real))
+        except ValueError:
+            continue
+    return str(path)
+
+
 def write_atomic(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp")
@@ -384,7 +401,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {
                 "slug": slug,
                 "known": known,
-                "path": str(dest),
+                "path": shown(dest),
                 "inbox": INBOX_CHOICE,
                 "choices": projects(),
             })
@@ -404,8 +421,8 @@ class Handler(BaseHTTPRequestHandler):
                     dest = set_route(slug, str(body.get("choice", "")))
             except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
                 return self._json(400, {"error": str(e)})
-            log(f"= {slug} → {dest}")
-            return self._json(200, {"slug": slug, "path": str(dest)})
+            log(f"= {slug} → {shown(dest)}")
+            return self._json(200, {"slug": slug, "path": shown(dest)})
         if not path.endswith("/v1/memo"):
             self._drain()
             return self._json(404, {"error": "no such endpoint"})
@@ -486,9 +503,10 @@ class Handler(BaseHTTPRequestHandler):
             count, label, audio_bytes = self._file_memo(
                 manifest, memo, memo_id, dest, audio_tmp, audio_bytes, holder)
         log(f"+ {label or slug}: memo {memo_id[:8]} "
-            f"({audio_bytes // 1024} KiB) → {dest} [{count} memo(s)]")
-        notify(f"Diktafon — {label or slug}", f"{count} memo(s) in {dest}")
-        self._json(200, {"ok": True, "path": str(dest), "memos": count})
+            f"({audio_bytes // 1024} KiB) → {shown(dest)} [{count} memo(s)]")
+        notify(f"Diktafon — {label or slug}",
+               f"{count} memo(s) in {shown(dest)}")
+        self._json(200, {"ok": True, "path": shown(dest), "memos": count})
 
     def _file_memo(self, manifest, memo, memo_id, dest: Path,
                    audio_tmp: Path | None, audio_bytes: int,

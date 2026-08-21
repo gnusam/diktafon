@@ -14,6 +14,10 @@ services:
     environment:
       DIKTAFON_PROJECTS: /projects
       DIKTAFON_INBOX: /inbox
+      # The same two places, spelled as the laptop's user knows them —
+      # that is what the phone shows after a send.
+      DIKTAFON_PROJECTS_DISPLAY: "${DIKTAFON_PROJECTS:-${HOME}/dev/perso}"
+      DIKTAFON_INBOX_DISPLAY: "${DIKTAFON_INBOX:-${HOME}/diktafon-inbox}"
       DIKTAFON_TOKEN: "${DIKTAFON_TOKEN:-}"
       DIKTAFON_HOSTNAME: "${DIKTAFON_HOSTNAME:-laptop}"
       # Without this the container runs in UTC and stamps arrival times an

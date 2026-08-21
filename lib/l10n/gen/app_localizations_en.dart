@@ -328,7 +328,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutPrivacy => 'About & privacy';
 
   @override
-  String get aboutPrivacyDesc => 'Audio never leaves this device';
+  String get aboutPrivacyDesc => 'Where audio goes, and where it does not';
 
   @override
   String get aboutTitle => 'ABOUT & PRIVACY';
