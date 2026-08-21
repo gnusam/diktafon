@@ -275,6 +275,29 @@ void main() {
         reason: 'the memo itself is fine — only its delivery is pending');
   });
 
+  test('a silent laptop costs one timeout, not one per waiting memo',
+      () async {
+    await seedMemo(id: 'm1');
+    await seedMemo(id: 'm2');
+    await queue.enqueueTranscription('m1');
+    await queue.enqueueTranscription('m2');
+    await queue.drain();
+    expect(receiver.uploads, hasLength(2));
+
+    // Both memos are edited (so both are pending again) and the laptop
+    // goes away.
+    await queue.applyTranscriptEdit('m1', shortTranscript('fr', 'un'));
+    await queue.applyTranscriptEdit('m2', shortTranscript('fr', 'deux'));
+    await receiver.close();
+    await queue.drain();
+
+    final jobs = await uploadJobs();
+    expect(jobs, hasLength(2));
+    expect(jobs.map((j) => j.status).toSet(), {'queued'});
+    expect(jobs.map((j) => j.attempts).toList()..sort(), [0, 1],
+        reason: 'the second memo never dialled a laptop known to be silent');
+  });
+
   test('a refused upload gives up instead of retrying forever', () async {
     receiver.status = 401;
     await seedMemo();

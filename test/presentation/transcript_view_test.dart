@@ -312,7 +312,10 @@ void main() {
   });
 
   group('§6.9 edit from the memo menu', () {
-    Memo bareMemo(int i, {Transcript? transcript, required MemoStatus status}) =>
+    Memo bareMemo(int i,
+            {Transcript? transcript,
+            required MemoStatus status,
+            DateTime? syncedAt}) =>
         Memo(
           id: 'bare$i',
           cassetteId: 'c1',
@@ -321,9 +324,12 @@ void main() {
           createdAt: DateTime.fromMillisecondsSinceEpoch(2000000 + i * 60000),
           status: status,
           transcript: transcript,
+          syncedAt: syncedAt,
         );
 
-    Widget menuApp(Tape tape, {ValueChanged<int>? onEdit}) => MaterialApp(
+    Widget menuApp(Tape tape,
+            {ValueChanged<int>? onEdit, bool showSyncMarks = false}) =>
+        MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('en'),
@@ -335,11 +341,30 @@ void main() {
               globalMs: 0,
               currentMemoIndex: 0,
               playing: false,
+              showSyncMarks: showSyncMarks,
               onEditMemo: onEdit,
               onDeleteMemo: (_) {},
             ),
           ),
         );
+
+    testWidgets('the pending-sync mark (fork) shows only for memos the '
+        'laptop has not acknowledged, and only when sync is on',
+        (tester) async {
+      final small = Tape([
+        bareMemo(0, status: MemoStatus.ready),
+        bareMemo(1,
+            status: MemoStatus.ready,
+            syncedAt: DateTime.fromMillisecondsSinceEpoch(9000000)),
+      ]);
+
+      // Sync not configured: "not sent" is not a state worth drawing.
+      await tester.pumpWidget(menuApp(small));
+      expect(find.byIcon(Icons.arrow_circle_up_outlined), findsNothing);
+
+      await tester.pumpWidget(menuApp(small, showSyncMarks: true));
+      expect(find.byIcon(Icons.arrow_circle_up_outlined), findsOneWidget);
+    });
 
     testWidgets('a transcribed memo offers Edit; the callback carries the '
         'ordinal', (tester) async {

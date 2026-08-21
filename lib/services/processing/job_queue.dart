@@ -333,6 +333,11 @@ class JobQueue {
     // re-picking them would spin the loop instead of letting the rest of
     // the queue through.
     final parked = <String>{};
+    // One failed upload is enough to know the laptop is not listening: the
+    // drain is sequential, and walking a backlog of ten memos into ten
+    // connection timeouts would hold up the transcription of the next
+    // recording for minutes. They all keep their places in the queue.
+    var laptopSilent = false;
     while (true) {
       // Enrichment waits for a provisioned model (§14) — and summarization
       // additionally for the summaries switch (the model picker's "No
@@ -360,7 +365,7 @@ class JobQueue {
       // Uploading needs a wired client and a configured target; without
       // either, the rows wait (nothing is lost — the memos keep their null
       // `syncedAt` and go up the day sync is set up).
-      if (_sync != null && settings.syncConfigured) {
+      if (_sync != null && settings.syncConfigured && !laptopSilent) {
         runnable.add(JobType.uploadMemo.name);
       }
 
@@ -384,7 +389,15 @@ class JobQueue {
         return;
       }
       await _run(job);
-      if (JobType.values.byName(job.type).retriesForever) parked.add(job.id);
+      if (JobType.values.byName(job.type).retriesForever) {
+        parked.add(job.id);
+        // A job that went through is deleted; one still on the table did
+        // not — so the rest of the backlog can wait for the next wake.
+        laptopSilent = await (_db.select(_db.jobs)
+                  ..where((j) => j.id.equals(job.id)))
+                .getSingleOrNull() !=
+            null;
+      }
     }
   }
 
