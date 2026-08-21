@@ -16,12 +16,16 @@ services:
       DIKTAFON_INBOX: /inbox
       DIKTAFON_TOKEN: "${DIKTAFON_TOKEN:-}"
       DIKTAFON_HOSTNAME: "${DIKTAFON_HOSTNAME:-laptop}"
+      # Without this the container runs in UTC and stamps arrival times an
+      # hour or two off the memo's own — confusing in a file about times.
+      TZ: "${TZ:-Europe/Paris}"
       # Lets notify-send reach the desktop session from inside the container.
       DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/${HOST_UID:-1000}/bus"
     volumes:
       - "${DIKTAFON_PROJECTS:-${HOME}/dev/perso}:/projects"
       - "${DIKTAFON_INBOX:-${HOME}/diktafon-inbox}:/inbox"
       - "/run/user/${HOST_UID:-1000}/bus:/run/user/${HOST_UID:-1000}/bus"
+      - "/etc/localtime:/etc/localtime:ro"
     expose:
       - "8099"
 

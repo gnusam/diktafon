@@ -402,9 +402,18 @@ class Handler(BaseHTTPRequestHandler):
             # stable for the life of the memo, so a re-send overwrites in
             # place and nothing is ever renamed underneath the user.
             audio_name = f"memo_{stamp_for(str(memo.get('createdAt', '')))}_{memo_id[:8]}{ext}"
-            (dest / "audio").mkdir(parents=True, exist_ok=True)
-            os.replace(audio_tmp, dest / "audio" / audio_name)
-            holder.remove(audio_tmp)  # moved into place, nothing to clean up
+            audio_dir = dest / "audio"
+            audio_dir.mkdir(parents=True, exist_ok=True)
+            # In a container the temp file and the destination are on
+            # different filesystems, so a bare rename raises EXDEV: stage
+            # the file *inside* the destination first (a copy, wherever it
+            # came from), then rename over the final name — that last step
+            # is the atomic one, and a half-written audio never appears
+            # under a name anything reads.
+            staged = audio_dir / f".{audio_name}.part"
+            holder.append(staged)
+            shutil.move(str(audio_tmp), str(staged))
+            os.replace(staged, audio_dir / audio_name)
         else:
             # Audio-less re-send of a memo we already hold: keep the file
             # that is already on disk rather than dropping it.

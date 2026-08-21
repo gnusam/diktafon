@@ -104,6 +104,9 @@ class JobQueue {
 
   /// Backoff = attempts × this; tests inject zero.
   final Duration _retryDelayUnit;
+
+  /// How far back the automatic sync reaches for memos nothing ever sent.
+  static const _sweepWindow = Duration(days: 7);
   final _uuid = const Uuid();
 
   /// In-flight cancellation handles, by memo id (§14 delete-during-processing).
@@ -410,15 +413,23 @@ class JobQueue {
   }
 
   /// Memos that never reached the laptop and have no job to take them
-  /// there: recorded before sync was set up, or orphaned by a kill between
-  /// the enrichment and the enqueue. Runs once per process, like the other
-  /// reconciliations, and only when sync sends by itself.
+  /// there: orphaned by a kill between the enrichment and the enqueue, or
+  /// recorded in the days before sync was set up. Runs once per process,
+  /// like the other reconciliations, and only when sync sends by itself.
+  ///
+  /// Bounded to [_sweepWindow] on purpose: switching sync on must not push
+  /// a year of recordings up a mobile connection unasked. Anything older
+  /// goes when the user says so — the Settings row and the cassette menu
+  /// both send without a window.
   Future<void> _sweepUnsynced() async {
     if (_sync == null) return;
     final settings = await _settings.get();
     if (!settings.syncConfigured || !settings.syncAuto) return;
+    final since =
+        DateTime.now().subtract(_sweepWindow).millisecondsSinceEpoch;
     final rows = await (_db.select(_db.memos)
-          ..where((m) => m.syncedAt.isNull())
+          ..where((m) =>
+              m.syncedAt.isNull() & m.createdAt.isBiggerOrEqualValue(since))
           ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
         .get();
     for (final row in rows) {

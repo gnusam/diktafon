@@ -4,7 +4,6 @@
 /// makes "the laptop is off" a wait rather than a failure.
 library;
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -194,14 +193,15 @@ void main() {
     work.deleteSync(recursive: true);
   });
 
-  Future<Memo> seedMemo({String id = 'm1', String ext = '.m4a'}) async {
+  Future<Memo> seedMemo(
+      {String id = 'm1', String ext = '.m4a', DateTime? createdAt}) async {
     final file = File('${work.path}/$id$ext')..writeAsBytesSync([1, 2, 3, 4]);
     final memo = Memo(
       id: id,
       cassetteId: 'c1',
       filePath: file.path,
       durationMs: 4000,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
+      createdAt: createdAt ?? DateTime.now(),
       status: MemoStatus.stored,
     );
     await memos.insert(memo);
@@ -340,6 +340,28 @@ void main() {
     await settings.setSyncAuto(true);
     final fresh = buildQueue();
     addTearDown(fresh.dispose);
+    await fresh.drain();
+    expect(receiver.uploads, hasLength(1));
+  });
+
+  test('switching sync on does not push the whole back catalogue', () async {
+    await settings.setSyncAuto(false);
+    await seedMemo(
+        id: 'old', createdAt: DateTime.now().subtract(const Duration(days: 400)));
+    await queue.enqueueTranscription('old');
+    await queue.drain();
+    expect(receiver.uploads, isEmpty);
+
+    // Sync goes on and the app restarts: the launch sweep reaches back a
+    // week, so a year-old memo stays put…
+    await settings.setSyncAuto(true);
+    final fresh = buildQueue();
+    addTearDown(fresh.dispose);
+    await fresh.drain();
+    expect(receiver.uploads, isEmpty);
+
+    // …until it is asked for explicitly.
+    await fresh.enqueueUploads();
     await fresh.drain();
     expect(receiver.uploads, hasLength(1));
   });

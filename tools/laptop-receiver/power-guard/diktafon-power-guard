@@ -29,21 +29,21 @@ running() {
 }
 
 case "${1:-auto}" in
-  start) want=1 ;;
-  stop)  want=0 ;;
-  *)     on_mains && want=1 || want=0 ;;
+  start) want=1; why="asked to" ;;
+  stop)  want=0; why="asked to" ;;
+  *)     if on_mains; then want=1; why="on mains"; else want=0; why="on battery"; fi ;;
 esac
 
 if [ "$want" = 1 ]; then
   if running; then
     exit 0
   fi
-  echo "diktafon: on mains — starting receiver + tunnel"
+  echo "diktafon: $why — starting receiver + tunnel"
   "${COMPOSE[@]}" up -d
 else
   if ! running; then
     exit 0
   fi
-  echo "diktafon: on battery — stopping receiver + tunnel"
+  echo "diktafon: $why — stopping receiver + tunnel"
   "${COMPOSE[@]}" down
 fi

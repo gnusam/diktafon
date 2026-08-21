@@ -18,6 +18,14 @@
   <img src="media/04-settings.png" width="15%" alt="Settings screen">
 </p>
 
+> **This is a personal fork of [jaromiru/diktafon](https://github.com/jaromiru/diktafon).**
+> It adds one thing: an opt-in **laptop sync** — each memo posts itself to a
+> receiver on your own machine over your own tunnel, and lands as the same
+> directory an export would have produced. Off by default; nothing leaves the
+> phone until you paste an address. See **[SYNC.md](SYNC.md)**.
+> The app id is `cz.mod42.diktafon.sam` so it installs alongside the release
+> build rather than replacing it.
+
 Diktafon is a voice-memo app built around one idea: capturing a thought and
 finding it again later must feel effortless. The feel is nostalgic — inspired
 by the tape devices of the past, memos live on topic-based **cassettes**, and
