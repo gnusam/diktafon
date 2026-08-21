@@ -46,25 +46,29 @@ class SyncSettingsGroup extends ConsumerWidget {
           onChanged: target == null ? null : repo.setSyncAuto,
         ),
       ),
-      SettingsRow(
-        title: l10n.syncPendingRow,
-        value: pending == 0 ? l10n.syncPendingNone : l10n.syncPending(pending),
-        trailing: target == null || pending == 0
-            ? null
-            : Text(l10n.syncSendNow,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: context.tape.ink,
-                )),
-        onTap: target == null || pending == 0
-            ? null
-            : () async {
-                await ref.read(jobQueueProvider).enqueueUploads();
-                if (context.mounted) _toast(context, l10n.syncQueued);
-              },
-      ),
+      // Only once there is somewhere to send to: with no address, "waiting
+      // to be sent" would be waiting for nothing.
+      if (target != null)
+        SettingsRow(
+          title: l10n.syncPendingRow,
+          value:
+              pending == 0 ? l10n.syncPendingNone : l10n.syncPending(pending),
+          trailing: pending == 0
+              ? null
+              : Text(l10n.syncSendNow,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: context.tape.ink,
+                  )),
+          onTap: pending == 0
+              ? null
+              : () async {
+                  await ref.read(jobQueueProvider).enqueueUploads();
+                  if (context.mounted) _toast(context, l10n.syncQueued);
+                },
+        ),
     ]);
   }
 
