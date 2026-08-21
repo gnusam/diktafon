@@ -402,7 +402,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firstRunIntro =>
-      'It listens, writes and summarises right here on your phone. Recordings, transcripts and summaries **never leave this device**. There is no account and no cloud.';
+      'It listens, writes and summarises right here on your phone. There is no account and no cloud: recordings, transcripts and summaries **only leave this device** if you set up a laptop of your own to send them to.';
 
   @override
   String get firstRunSetupHeader => 'First-time setup';
@@ -459,7 +459,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupIntro =>
-      'Your device\'s own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Nothing is uploaded by Diktafon.';
+      'Your device\'s own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Diktafon uploads nothing on its own — only to the laptop you set up under Laptop sync.';
 
   @override
   String get groupExport => 'Export';
@@ -694,6 +694,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncQueued => 'Queued for the laptop.';
+
+  @override
+  String get syncScan => 'SCAN';
+
+  @override
+  String get syncScanTitle => 'Scan the address';
+
+  @override
+  String get syncScanHint =>
+      'Point the camera at the code your receiver printed on the laptop.';
+
+  @override
+  String syncScanFailed(String error) {
+    return 'Camera unavailable: $error';
+  }
+
+  @override
+  String get syncDestinationTitle => 'WHERE ON THE LAPTOP?';
+
+  @override
+  String syncDestinationHint(String label) {
+    return 'The laptop has no place for “$label” yet. Pick the project folder it belongs in — it is asked once, and whatever already arrived moves there.';
+  }
+
+  @override
+  String get syncDestinationInbox => 'Inbox — decide later';
+
+  @override
+  String syncSentTo(String path) {
+    return 'Sent to $path.';
+  }
+
+  @override
+  String get syncQueuedOffline => 'Laptop asleep — queued until it answers.';
 
   @override
   String get syncSendCassette => 'Send to laptop';

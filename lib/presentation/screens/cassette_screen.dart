@@ -14,6 +14,8 @@ import '../../domain/transcript_edit.dart';
 import '../../l10n/l10n.dart';
 import '../../services/audio/tape_player_service.dart';
 import '../../services/providers/transcription_provider.dart';
+import '../../services/sync/laptop_sync.dart';
+import '../../services/sync/sync_target.dart';
 import '../../services/system/system_settings.dart';
 import '../theme/tape_colors.dart';
 import '../theme/theme.dart';
@@ -23,6 +25,7 @@ import '../widgets/deck.dart';
 import '../widgets/directional_chevrons.dart';
 import '../widgets/edit_transcript_dialog.dart';
 import '../widgets/level_meter.dart';
+import '../widgets/sync_destination_dialog.dart';
 import '../widgets/timeline_bar.dart';
 import '../widgets/transcript_view.dart';
 import 'home_screen.dart';
@@ -527,15 +530,58 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
     await ref.read(jobQueueProvider).retranscribeCassette(cassette.id);
   }
 
+  /// Fork addition. Sending is a cassette's own affair, not a Settings
+  /// chore: a cassette the laptop already has a place for goes without a
+  /// question; one it does not asks — once — which project folder it
+  /// belongs in, and the laptop moves anything that already landed
+  /// elsewhere.
   Future<void> _sendToLaptop(Cassette cassette) async {
     final l10n = context.l10n;
+    final target = SyncTarget.parse(ref.read(settingsProvider).value?.syncUrl);
+    if (target == null) return; // the menu entry is not offered in that case
+    final label = cassette.label ?? l10n.untitledCassette;
+    final sync = ref.read(laptopSyncProvider);
+
+    SyncDestination? destination;
+    try {
+      destination = await sync.destination(target, label);
+    } on SyncException catch (error) {
+      // The laptop is asleep. Queue anyway — that is the whole point of the
+      // queue — and let it be filed when it answers again.
+      await ref
+          .read(jobQueueProvider)
+          .enqueueUploads(cassetteId: cassette.id, force: true);
+      if (!mounted) return;
+      _snack(error.permanent
+          ? l10n.syncTestFailed(error.toString())
+          : l10n.syncQueuedOffline);
+      return;
+    }
+
+    if (!destination.known) {
+      if (!mounted) return; // the screen closed while the laptop answered
+      final choice = await askSyncDestination(context,
+          label: label, destination: destination);
+      if (choice == null || !mounted) return; // backed out: nothing is sent
+      try {
+        await sync.chooseDestination(target, label: label, choice: choice);
+      } on SyncException catch (error) {
+        if (!mounted) return;
+        _snack(l10n.syncTestFailed(error.toString()));
+        return;
+      }
+      destination = await sync.destination(target, label);
+    }
+
     await ref
         .read(jobQueueProvider)
         .enqueueUploads(cassetteId: cassette.id, force: true);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.syncQueued)));
+    _snack(l10n.syncSentTo(destination.path));
   }
+
+  void _snack(String message) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _deleteCassette(Cassette cassette, int memoCount) async {
     final deleted = await confirmDeleteCassette(

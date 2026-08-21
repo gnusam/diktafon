@@ -754,7 +754,7 @@ abstract class AppLocalizations {
   /// The **…** span is rendered bold; keep exactly one such span.
   ///
   /// In en, this message translates to:
-  /// **'It listens, writes and summarises right here on your phone. Recordings, transcripts and summaries **never leave this device**. There is no account and no cloud.'**
+  /// **'It listens, writes and summarises right here on your phone. There is no account and no cloud: recordings, transcripts and summaries **only leave this device** if you set up a laptop of your own to send them to.'**
   String get firstRunIntro;
 
   /// No description provided for @firstRunSetupHeader.
@@ -850,7 +850,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupIntro.
   ///
   /// In en, this message translates to:
-  /// **'Your device\'s own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Nothing is uploaded by Diktafon.'**
+  /// **'Your device\'s own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Diktafon uploads nothing on its own — only to the laptop you set up under Laptop sync.'**
   String get backupIntro;
 
   /// No description provided for @groupExport.
@@ -1176,6 +1176,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Queued for the laptop.'**
   String get syncQueued;
+
+  /// No description provided for @syncScan.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN'**
+  String get syncScan;
+
+  /// No description provided for @syncScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the address'**
+  String get syncScanTitle;
+
+  /// No description provided for @syncScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the code your receiver printed on the laptop.'**
+  String get syncScanHint;
+
+  /// No description provided for @syncScanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable: {error}'**
+  String syncScanFailed(String error);
+
+  /// No description provided for @syncDestinationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WHERE ON THE LAPTOP?'**
+  String get syncDestinationTitle;
+
+  /// No description provided for @syncDestinationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The laptop has no place for “{label}” yet. Pick the project folder it belongs in — it is asked once, and whatever already arrived moves there.'**
+  String syncDestinationHint(String label);
+
+  /// No description provided for @syncDestinationInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox — decide later'**
+  String get syncDestinationInbox;
+
+  /// No description provided for @syncSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to {path}.'**
+  String syncSentTo(String path);
+
+  /// No description provided for @syncQueuedOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Laptop asleep — queued until it answers.'**
+  String get syncQueuedOffline;
 
   /// No description provided for @syncSendCassette.
   ///

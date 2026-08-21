@@ -111,7 +111,7 @@
   "downloadFailed": "Le téléchargement de {label} a échoué — vérifiez votre connexion et réessayez.",
 
   "firstRunWelcome": "Bienvenue dans Diktafon",
-  "firstRunIntro": "Il écoute, écrit et résume directement sur votre téléphone. Enregistrements, transcriptions et résumés **ne quittent jamais cet appareil**. Pas de compte, pas de cloud.",
+  "firstRunIntro": "Il écoute, écrit et résume directement sur votre téléphone. Pas de compte, pas de cloud : enregistrements, transcriptions et résumés **ne quittent cet appareil** que si vous configurez un laptop à vous où les envoyer.",
   "firstRunSetupHeader": "Configuration initiale",
   "allowMicRow": "Autoriser le micro",
   "micTapToGrant": "Touchez pour accorder l'accès",
@@ -128,7 +128,7 @@
   "startRecordingKey": "ENREGISTRER",
 
   "backupTitle": "EXPORT ET IMPORT",
-  "backupIntro": "La sauvegarde de votre appareil couvre automatiquement la liste des cassettes, les transcriptions et les résumés. L'audio est volumineux — emportez-le explicitement : un export regroupe l'audio, les transcriptions et les résumés d'une cassette dans une archive .zip, et un import les ramène. Diktafon n'envoie rien.",
+  "backupIntro": "La sauvegarde de votre appareil couvre automatiquement la liste des cassettes, les transcriptions et les résumés. L'audio est volumineux — emportez-le explicitement : un export regroupe l'audio, les transcriptions et les résumés d'une cassette dans une archive .zip, et un import les ramène. Diktafon n'envoie rien de lui-même — uniquement vers le laptop configuré dans « Envoi vers le laptop ».",
   "groupExport": "Export",
   "exportAll": "Exporter toutes les cassettes",
   "exportAllDesc": "Tout, dans une seule archive",
@@ -185,6 +185,15 @@
   "syncPending": "{count, plural, one{1 mémo en attente} other{{count} mémos en attente}}",
   "syncSendNow": "ENVOYER",
   "syncQueued": "Mis en file pour le laptop.",
+  "syncScan": "SCANNER",
+  "syncScanTitle": "Scanner l'adresse",
+  "syncScanHint": "Visez le code affiché par le receveur sur le laptop.",
+  "syncScanFailed": "Caméra indisponible : {error}",
+  "syncDestinationTitle": "OÙ SUR LE LAPTOP ?",
+  "syncDestinationHint": "Le laptop n'a pas encore de place pour « {label} ». Choisissez le dossier de projet où la ranger — la question n'est posée qu'une fois, et ce qui est déjà arrivé y sera déplacé.",
+  "syncDestinationInbox": "Boîte de réception — décider plus tard",
+  "syncSentTo": "Envoyé vers {path}.",
+  "syncQueuedOffline": "Laptop endormi — mis en file jusqu'à son réveil.",
   "syncSendCassette": "Envoyer vers le laptop",
   "notifRecording": "Enregistrement en cours",
   "notifRecordingChannel": "Enregistrement"

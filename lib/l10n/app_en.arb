@@ -185,7 +185,7 @@
   "@downloadFailed": {"placeholders": {"label": {"type": "String"}}},
 
   "firstRunWelcome": "Welcome to Diktafon",
-  "firstRunIntro": "It listens, writes and summarises right here on your phone. Recordings, transcripts and summaries **never leave this device**. There is no account and no cloud.",
+  "firstRunIntro": "It listens, writes and summarises right here on your phone. There is no account and no cloud: recordings, transcripts and summaries **only leave this device** if you set up a laptop of your own to send them to.",
   "@firstRunIntro": {
     "description": "The **…** span is rendered bold; keep exactly one such span."
   },
@@ -225,7 +225,7 @@
   "startRecordingKey": "START RECORDING",
 
   "backupTitle": "EXPORT & IMPORT",
-  "backupIntro": "Your device's own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Nothing is uploaded by Diktafon.",
+  "backupIntro": "Your device's own backup covers the cassette list, transcripts and summaries automatically. Audio recordings are large — take them with you explicitly: an export packs the audio, transcripts and summaries of a cassette into one .zip archive, and importing an archive brings them back. Diktafon uploads nothing on its own — only to the laptop you set up under Laptop sync.",
   "groupExport": "Export",
   "exportAll": "Export all cassettes",
   "exportAllDesc": "Everything, into one archive file",
@@ -312,6 +312,18 @@
   },
   "syncSendNow": "SEND",
   "syncQueued": "Queued for the laptop.",
+  "syncScan": "SCAN",
+  "syncScanTitle": "Scan the address",
+  "syncScanHint": "Point the camera at the code your receiver printed on the laptop.",
+  "syncScanFailed": "Camera unavailable: {error}",
+  "@syncScanFailed": {"placeholders": {"error": {"type": "String"}}},
+  "syncDestinationTitle": "WHERE ON THE LAPTOP?",
+  "syncDestinationHint": "The laptop has no place for \u201c{label}\u201d yet. Pick the project folder it belongs in — it is asked once, and whatever already arrived moves there.",
+  "@syncDestinationHint": {"placeholders": {"label": {"type": "String"}}},
+  "syncDestinationInbox": "Inbox — decide later",
+  "syncSentTo": "Sent to {path}.",
+  "@syncSentTo": {"placeholders": {"path": {"type": "String"}}},
+  "syncQueuedOffline": "Laptop asleep — queued until it answers.",
   "syncSendCassette": "Send to laptop",
   "notifRecording": "Recording memo",
   "notifRecordingChannel": "Recording"

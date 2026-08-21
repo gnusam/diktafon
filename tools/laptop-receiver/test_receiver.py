@@ -18,6 +18,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -109,6 +110,31 @@ def memo(memo_id: str, created: str, body: str, label: str = "life",
         "audio": {"ext": ".m4a", "bytes": len(audio),
                   "sha256": sha or hashlib.sha256(audio).hexdigest()},
     }
+
+
+def get_json(port: int, path: str, token: str = TOKEN) -> tuple[int, dict]:
+    request = urllib.request.Request(f"http://127.0.0.1:{port}{path}",
+                                     headers={"X-Diktafon-Token": token})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        return error.code, json.loads(error.read() or b"{}")
+
+
+def post_json(port: int, path: str, payload: dict,
+              token: str = TOKEN) -> tuple[int, dict]:
+    body = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}", data=body, method="POST",
+        headers={"Content-Type": "application/json",
+                 "Content-Length": str(len(body)),
+                 "X-Diktafon-Token": token})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        return error.code, json.loads(error.read() or b"{}")
 
 
 def send(port: int, memo_id: str, created: str, body: str,
@@ -216,6 +242,48 @@ def main() -> int:
         check("and the rebuilt transcript is the synced one",
               "Nouveau mémo." in (older / "transcript.md").read_text(), True)
 
+        # ---- where a cassette goes --------------------------------------
+        # A cassette named after a project needs no question asked.
+        _, answer = get_json(port, "/v1/destination?label=life")
+        check("a cassette matching a project is already placed",
+              (answer["known"], answer["path"].endswith("projects/life/retex/diktafon/life")),
+              (True, True))
+        check("the phone is offered the project directories",
+              "life" in answer["choices"], True)
+
+        # One that matches nothing lands in the inbox and says so.
+        (work / "projects/camion").mkdir()
+        _, answer = get_json(port, "/v1/destination?label=" + urllib.parse.quote("Notes de terrain"))
+        check("an unplaced cassette is reported unresolved",
+              (answer["known"], answer["slug"]), (False, "notes-de-terrain"))
+        send(port, "m-loose", "2026-08-20T12:00:00.000", "Sans domicile.",
+             label="Notes de terrain")
+        check("…and its memo waits in the inbox meanwhile",
+              (work / "inbox/notes-de-terrain/transcript.md").exists(), True)
+
+        # The phone answers with one of the offered names; what already
+        # arrived moves with it.
+        status, answer = post_json(port, "/v1/destination",
+                                   {"label": "Notes de terrain",
+                                    "choice": "camion"})
+        moved = work / "projects/camion/retex/diktafon/notes-de-terrain"
+        check("placing a cassette moves what already landed",
+              (status, (moved / "transcript.md").exists(),
+               (work / "inbox/notes-de-terrain").exists()),
+              (200, True, False))
+        _, answer = get_json(port, "/v1/destination?label=" + urllib.parse.quote("Notes de terrain"))
+        check("and the choice sticks", (answer["known"], answer["path"]),
+              (True, str(moved)))
+        send(port, "m-loose2", "2026-08-20T13:00:00.000", "Suite.",
+             label="Notes de terrain")
+        check("later memos follow it",
+              "Suite." in (moved / "transcript.md").read_text("utf-8"), True)
+
+        status, _ = post_json(port, "/v1/destination",
+                              {"label": "Notes de terrain",
+                               "choice": "../../../etc"})
+        check("a destination that was never offered is refused", status, 400)
+
         # ---- what it must refuse ----------------------------------------
         status, body = send(port, "m-9", "2026-08-20T10:00:00.000", "x",
                             b"tampered", sha="0" * 64)
@@ -229,7 +297,8 @@ def main() -> int:
                          label="../../../../etc/cron.d/pwn")
         check("a hostile cassette name is flattened, not followed", status, 200)
         check("nothing escaped the inbox",
-              sorted(p.name for p in (work / "inbox").iterdir()),
+              sorted(p.name for p in (work / "inbox").iterdir()
+                     if not p.name.startswith(".")),
               ["etc-cron.d-pwn"])
         check("no directory appeared outside the roots",
               sorted(p.name for p in work.iterdir()),

@@ -17,6 +17,7 @@ import '../../services/sync/sync_target.dart';
 import '../theme/tape_colors.dart';
 import 'ink_toggle.dart';
 import 'settings_rows.dart';
+import 'sync_qr_scanner.dart';
 
 class SyncSettingsGroup extends ConsumerWidget {
   const SyncSettingsGroup({super.key, required this.settings});
@@ -46,28 +47,14 @@ class SyncSettingsGroup extends ConsumerWidget {
           onChanged: target == null ? null : repo.setSyncAuto,
         ),
       ),
-      // Only once there is somewhere to send to: with no address, "waiting
-      // to be sent" would be waiting for nothing.
+      // How many memos have not landed — information, not an action:
+      // sending is a cassette's own menu entry, where the cassette (and so
+      // its destination) is known.
       if (target != null)
         SettingsRow(
           title: l10n.syncPendingRow,
           value:
               pending == 0 ? l10n.syncPendingNone : l10n.syncPending(pending),
-          trailing: pending == 0
-              ? null
-              : Text(l10n.syncSendNow,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                    color: context.tape.ink,
-                  )),
-          onTap: pending == 0
-              ? null
-              : () async {
-                  await ref.read(jobQueueProvider).enqueueUploads();
-                  if (context.mounted) _toast(context, l10n.syncQueued);
-                },
         ),
     ]);
   }
@@ -87,10 +74,6 @@ class SyncSettingsGroup extends ConsumerWidget {
       await ref.read(jobQueueProvider).enqueueUploads();
     }
   }
-
-  static void _toast(BuildContext context, String message) =>
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
 }
 
 class _SyncTargetDialog extends ConsumerStatefulWidget {
@@ -112,6 +95,18 @@ class _SyncTargetDialogState extends ConsumerState<_SyncTargetDialog> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _scan() async {
+    final scanned = await scanSyncQr(context);
+    if (scanned == null || !mounted) return;
+    setState(() {
+      _controller.text = scanned;
+      _result = null;
+    });
+    // Straight into the check: a scan that reads the wrong code should say
+    // so here, not three days later when a memo has not arrived.
+    await _test();
   }
 
   Future<void> _test() async {
@@ -187,6 +182,13 @@ class _SyncTargetDialogState extends ConsumerState<_SyncTargetDialog> {
         ],
       ),
       actions: [
+        // The address carries a password and a token: nobody retypes that
+        // from a laptop screen, and there is no clipboard between the two.
+        if (canScanQr)
+          TextButton(
+            onPressed: _testing ? null : _scan,
+            child: Text(l10n.syncScan),
+          ),
         TextButton(
           onPressed: _testing ? null : _test,
           child: Text(_testing ? l10n.syncTesting : l10n.syncTest),

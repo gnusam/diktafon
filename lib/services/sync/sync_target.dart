@@ -54,7 +54,12 @@ class SyncTarget {
     );
   }
 
-  Uri endpoint(String path) => base.replace(path: '${base.path}/$path');
+  /// `Uri.replace` percent-encodes anything in `path`, so a query has to be
+  /// passed as parameters rather than glued onto the string.
+  Uri endpoint(String path, {Map<String, String>? query}) => base.replace(
+        path: '${base.path}/$path',
+        queryParameters: query,
+      );
 
   /// The `Authorization` header value, or null when there are no credentials.
   String? get basicAuthHeader => userInfo == null

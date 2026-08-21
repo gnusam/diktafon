@@ -50,18 +50,24 @@ On battery the tunnel closes and the phone keeps its memos queued — they go
 up within a minute of the cable going back in. `99-diktafon-power.rules`
 makes that reaction instant instead, at the cost of one root-owned file.
 
-### 3. The phone
+### 3. Pairing the phone
 
-Settings → **Laptop sync** → *Laptop address*, and paste one string:
+There is no clipboard between the two machines, and the address carries a
+password. So the laptop shows it as a QR code:
 
+```bash
+tools/laptop-receiver/pair-qr.sh        # in the terminal
+tools/laptop-receiver/pair-qr.sh -p     # …or as a PNG, for a small terminal
 ```
-https://user:password@diktafon.tunnel.example.fr#optional-token
-```
 
-- the credentials are the tunnel's basic auth (`httpUser`/`httpPassword`);
-- the fragment is `DIKTAFON_TOKEN`, if you set one. It rides in the fragment
-  because a fragment is never sent over the wire: a token in the path would
-  land in the reverse proxy's access log on the server.
+On the phone: Settings → **Laptop sync** → *Laptop address* → **SCAN**.
+
+The address it encodes is `https://user:password@host#token` —
+credentials are the tunnel's basic auth (`httpUser`/`httpPassword`), and the
+fragment is `DIKTAFON_TOKEN` when you set one. It rides in the fragment
+because a fragment is never sent over the wire: a token in the path would
+land in the reverse proxy's access log on the server. The field also takes a
+typed address, for a desktop build or a laptop on the LAN.
 
 **Test** answers with the receiving machine's own hostname, so you can see
 *which* laptop you just reached. Then turn *Send automatically* on.
@@ -83,9 +89,27 @@ https://user:password@diktafon.tunnel.example.fr#optional-token
   Settings row, or a cassette's *Send to laptop*.
 - Editing a transcript un-marks the memo: the laptop's copy describes the
   old words, so it is sent again.
-- A cassette's ⋮ menu has **Send to laptop**, which re-sends the whole tape,
-  acknowledged memos included. The receiver is idempotent by memo id, so
-  "send it again" is always safe.
+## Sending a cassette, and where it goes
+
+Sending is a cassette's own affair — its ⋮ menu, **Send to laptop** — not a
+Settings chore, because that is where the cassette (and so its destination)
+is known. It re-sends the whole tape, acknowledged memos included: the
+receiver is idempotent by memo id, so "send it again" is always safe.
+
+What happens then depends on whether the laptop already has a place for it:
+
+- **It does** → the memos go, no question asked. That is the case when you
+  have answered once before, or when a directory in `~/dev/perso` carries
+  exactly the cassette's name (a cassette called `life` needs no ceremony).
+- **It does not** → the phone asks, once, which project folder it belongs
+  in. The list comes *from* the laptop, and the phone hands back a name, not
+  a path — the receiver would refuse anything it did not offer. Whatever
+  already landed in the inbox meanwhile is **moved** into the chosen folder.
+- **The laptop is asleep** → nothing is lost and nothing is asked: the tape
+  is queued and files itself when the laptop answers again.
+
+Answers live in `.routes.json` in the inbox; delete a line to be asked
+again.
 
 ## What lands on the laptop
 
@@ -113,6 +137,8 @@ The endpoint is reachable from the internet, so:
 - **basic auth at the tunnel** rejects unauthenticated requests on the
   server, before they ever reach the laptop;
 - **the token**, when set, is checked with a constant-time compare;
+- a destination is chosen **by name from the laptop's own list**: the phone
+  cannot name a directory the receiver did not offer;
 - every path component is **re-derived locally** from a strict whitelist —
   a cassette named `../../etc/cron.d/pwn` becomes `etc-cron.d-pwn` in the
   inbox, and a memo id with a path in it is refused outright;
@@ -133,6 +159,8 @@ docker compose logs frpc                           # is the tunnel up
 curl -u user:pass https://…/v1/ping -H "X-Diktafon-Token: …"
 dart run tools/laptop-receiver/sync_probe.dart '<the pasted url>' probe
 python3 tools/laptop-receiver/test_receiver.py     # the receiver's own tests
+tools/laptop-receiver/pair-qr.sh                   # show the pairing code again
+curl -u user:pass "https://…/v1/destination?label=life" -H "X-Diktafon-Token: …"
 ```
 
 `sync_probe` sends a synthetic memo through the app's real client and payload

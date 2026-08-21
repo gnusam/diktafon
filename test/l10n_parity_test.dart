@@ -49,6 +49,15 @@ void main() {
     'syncSendNow',
     'syncQueued',
     'syncSendCassette',
+    'syncScan',
+    'syncScanTitle',
+    'syncScanHint',
+    'syncScanFailed',
+    'syncDestinationTitle',
+    'syncDestinationHint',
+    'syncDestinationInbox',
+    'syncSentTo',
+    'syncQueuedOffline',
   };
 
   test('every locale ARB carries every template message', () {

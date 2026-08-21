@@ -667,6 +667,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncQueued => 'Queued for the laptop.';
 
   @override
+  String get syncScan => 'SCAN';
+
+  @override
+  String get syncScanTitle => 'Scan the address';
+
+  @override
+  String get syncScanHint =>
+      'Point the camera at the code your receiver printed on the laptop.';
+
+  @override
+  String syncScanFailed(String error) {
+    return 'Camera unavailable: $error';
+  }
+
+  @override
+  String get syncDestinationTitle => 'WHERE ON THE LAPTOP?';
+
+  @override
+  String syncDestinationHint(String label) {
+    return 'The laptop has no place for “$label” yet. Pick the project folder it belongs in — it is asked once, and whatever already arrived moves there.';
+  }
+
+  @override
+  String get syncDestinationInbox => 'Inbox — decide later';
+
+  @override
+  String syncSentTo(String path) {
+    return 'Sent to $path.';
+  }
+
+  @override
+  String get syncQueuedOffline => 'Laptop asleep — queued until it answers.';
+
+  @override
   String get syncSendCassette => 'Send to laptop';
 
   @override

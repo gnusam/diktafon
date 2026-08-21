@@ -53,12 +53,41 @@ class StubReceiver {
   int pings = 0;
   int status = 200;
 
+  /// What /v1/destination answers, and what the phone chose there.
+  bool destinationKnown = true;
+  String destinationPath = '/home/sam/dev/perso/life/retex/diktafon/life';
+  List<String> choices = const ['camion', 'gen', 'life'];
+  final chosen = <String, String>{};
+
   String get url => 'http://127.0.0.1:${_server.port}';
 
   Future<void> close() => _server.close(force: true);
 
   Future<void> _handle(HttpRequest request) async {
     final body = await _collect(request);
+    if (request.uri.path.endsWith('/v1/destination')) {
+      if (request.method == 'POST') {
+        final json = jsonDecode(utf8.decode(body)) as Map<String, dynamic>;
+        chosen[json['label'] as String] = json['choice'] as String;
+        destinationKnown = true;
+        destinationPath = '/home/sam/dev/perso/${json['choice']}/retex';
+        request.response
+          ..statusCode = status
+          ..write(jsonEncode({'path': destinationPath}));
+      } else {
+        request.response
+          ..statusCode = status
+          ..write(jsonEncode({
+            'slug': request.uri.queryParameters['label'],
+            'known': destinationKnown,
+            'path': destinationPath,
+            'inbox': '@inbox',
+            'choices': choices,
+          }));
+      }
+      await request.response.close();
+      return;
+    }
     if (request.uri.path.endsWith('/v1/ping')) {
       pings++;
       request.response
@@ -387,6 +416,29 @@ void main() {
     await fresh.enqueueUploads();
     await fresh.drain();
     expect(receiver.uploads, hasLength(1));
+  });
+
+  test('the laptop says whether a cassette already has a place', () async {
+    final sync = LaptopSync();
+    final target = SyncTarget.parse(receiver.url)!;
+
+    var where = await sync.destination(target, 'life');
+    expect(where.known, isTrue);
+    expect(where.path, endsWith('retex/diktafon/life'));
+
+    // One it does not know: the phone gets names to offer, never paths.
+    receiver
+      ..destinationKnown = false
+      ..destinationPath = '/home/sam/diktafon-inbox/notes';
+    where = await sync.destination(target, 'Notes de terrain');
+    expect(where.known, isFalse);
+    expect(where.choices, contains('camion'));
+    expect(where.inbox, '@inbox');
+
+    final path = await sync.chooseDestination(target,
+        label: 'Notes de terrain', choice: 'camion');
+    expect(receiver.chosen['Notes de terrain'], 'camion');
+    expect(path, contains('camion'));
   });
 
   test('ping names the machine that answered', () async {

@@ -38,6 +38,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import urllib.parse
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -50,10 +51,16 @@ TOKEN = os.environ.get("DIKTAFON_TOKEN", "").strip()
 MAX_BYTES = int(os.environ.get("DIKTAFON_MAX_BYTES", str(512 * 1024 * 1024)))
 NOTIFY = os.environ.get("DIKTAFON_NOTIFY", "1") == "1"
 HOSTNAME = os.environ.get("DIKTAFON_HOSTNAME", socket.gethostname())
+# Where the phone's "put this cassette in that project" answers are kept.
+ROUTES = Path(os.environ.get(
+    "DIKTAFON_ROUTES", str(INBOX / ".routes.json"))).expanduser()
 
 # One cassette directory is rewritten in full on every arrival; two memos
 # landing at once must not interleave their rebuilds.
 RENDER_LOCK = threading.Lock()
+
+# The one destination that is not a project directory.
+INBOX_CHOICE = "@inbox"
 
 SLUG_OK = re.compile(r"[^a-z0-9._-]+")
 ID_OK = re.compile(r"\A[A-Za-z0-9_-]{1,64}\Z")
@@ -161,14 +168,77 @@ def slugify(label: str | None, fallback: str = "cassette") -> str:
     return slug[:60] or fallback
 
 
-def destination(slug: str) -> Path:
-    """A cassette named after a project lands in that project's retex
-    directory — where the retex notes already live; anything else goes to
-    the inbox. Both paths are built here, never from the request."""
-    project = PROJECTS / slug
-    if project.is_dir():
-        return project / "retex" / "diktafon" / slug
-    return INBOX / slug
+def projects() -> list[str]:
+    """The directories a cassette may be filed into — offered to the phone
+    when it asks where to put one, and the *only* values a choice is
+    accepted from. Names only: paths are rebuilt here."""
+    try:
+        return sorted(
+            entry.name for entry in PROJECTS.iterdir()
+            if entry.is_dir() and not entry.name.startswith(".")
+        )
+    except OSError:
+        return []
+
+
+def read_routes() -> dict[str, str]:
+    try:
+        routes = json.loads(ROUTES.read_text("utf-8"))
+        return {k: v for k, v in routes.items() if isinstance(v, str)}
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return {}
+
+
+def in_project(name: str, slug: str) -> Path:
+    return PROJECTS / name / "retex" / "diktafon" / slug
+
+
+def resolve(slug: str) -> tuple[Path, bool]:
+    """Where a cassette goes, and whether that was a *decision* or a guess.
+
+    A decision is either the phone's own answer (kept in the routes file) or
+    a project directory of exactly the cassette's name — the case where
+    there is nothing to ask about. Anything else lands in the inbox and is
+    reported as unresolved, so the phone can offer to place it."""
+    route = read_routes().get(slug)
+    if route == INBOX_CHOICE:
+        return INBOX / slug, True
+    if route and route in projects():
+        return in_project(route, slug), True
+    if (PROJECTS / slug).is_dir():
+        return in_project(slug, slug), True
+    return INBOX / slug, False
+
+
+def set_route(slug: str, choice: str) -> Path:
+    """Records the phone's answer and moves anything already filed under
+    the old destination — a cassette placed after the fact must not leave
+    half of itself behind."""
+    if choice != INBOX_CHOICE and choice not in projects():
+        raise ValueError("unknown destination")
+    before, _ = resolve(slug)
+    routes = read_routes()
+    routes[slug] = choice
+    write_atomic(ROUTES, (json.dumps(routes, indent=2, sort_keys=True) + "\n")
+                 .encode("utf-8"))
+    after, _ = resolve(slug)
+    if before != after and before.exists():
+        after.parent.mkdir(parents=True, exist_ok=True)
+        if after.exists():
+            # Merge: fragments carry everything, and render() rebuilds.
+            for item in before.rglob("*"):
+                target = after / item.relative_to(before)
+                if item.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(item), str(target))
+            shutil.rmtree(before, ignore_errors=True)
+        else:
+            shutil.move(str(before), str(after))
+        render(after)
+        log(f"  moved {before} → {after}")
+    return after
 
 
 def write_atomic(path: Path, data: bytes) -> None:
@@ -297,14 +367,46 @@ class Handler(BaseHTTPRequestHandler):
     # ---- routes ----------------------------------------------------------
 
     def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
-        if self.path.rstrip("/").endswith("/v1/ping"):
+        path, _, query = self.path.partition("?")
+        path = path.rstrip("/")
+        if path.endswith("/v1/ping"):
             if not self._authorized():
                 return self._json(403, {"error": "bad token"})
             return self._json(200, {"host": HOSTNAME, "receiver": 1})
+        if path.endswith("/v1/destination"):
+            if not self._authorized():
+                return self._json(403, {"error": "bad token"})
+            label = urllib.parse.parse_qs(query).get("label", [""])[0]
+            slug = slugify(label)
+            dest, known = resolve(slug)
+            # The phone shows these as the places a cassette can live; it
+            # sends one back by name, never a path.
+            return self._json(200, {
+                "slug": slug,
+                "known": known,
+                "path": str(dest),
+                "inbox": INBOX_CHOICE,
+                "choices": projects(),
+            })
         self._json(404, {"error": "no such endpoint"})
 
     def do_POST(self):  # noqa: N802 - BaseHTTPRequestHandler API
-        if not self.path.rstrip("/").endswith("/v1/memo"):
+        path = self.path.partition("?")[0].rstrip("/")
+        if path.endswith("/v1/destination"):
+            if not self._authorized():
+                self._drain()
+                return self._json(403, {"error": "bad token"})
+            length = min(int(self.headers.get("Content-Length") or 0), 64 * 1024)
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                slug = slugify(str(body.get("label", "")))
+                with RENDER_LOCK:
+                    dest = set_route(slug, str(body.get("choice", "")))
+            except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                return self._json(400, {"error": str(e)})
+            log(f"= {slug} → {dest}")
+            return self._json(200, {"slug": slug, "path": str(dest)})
+        if not path.endswith("/v1/memo"):
             self._drain()
             return self._json(404, {"error": "no such endpoint"})
         if not self._authorized():
@@ -379,7 +481,7 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("audio checksum mismatch")
 
         slug = slugify((manifest.get("cassette") or {}).get("label"))
-        dest = destination(slug)
+        dest, _ = resolve(slug)
         with RENDER_LOCK:
             count, label, audio_bytes = self._file_memo(
                 manifest, memo, memo_id, dest, audio_tmp, audio_bytes, holder)

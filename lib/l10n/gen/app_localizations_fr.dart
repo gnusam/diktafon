@@ -404,7 +404,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get firstRunIntro =>
-      'Il écoute, écrit et résume directement sur votre téléphone. Enregistrements, transcriptions et résumés **ne quittent jamais cet appareil**. Pas de compte, pas de cloud.';
+      'Il écoute, écrit et résume directement sur votre téléphone. Pas de compte, pas de cloud : enregistrements, transcriptions et résumés **ne quittent cet appareil** que si vous configurez un laptop à vous où les envoyer.';
 
   @override
   String get firstRunSetupHeader => 'Configuration initiale';
@@ -461,7 +461,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupIntro =>
-      'La sauvegarde de votre appareil couvre automatiquement la liste des cassettes, les transcriptions et les résumés. L\'audio est volumineux — emportez-le explicitement : un export regroupe l\'audio, les transcriptions et les résumés d\'une cassette dans une archive .zip, et un import les ramène. Diktafon n\'envoie rien.';
+      'La sauvegarde de votre appareil couvre automatiquement la liste des cassettes, les transcriptions et les résumés. L\'audio est volumineux — emportez-le explicitement : un export regroupe l\'audio, les transcriptions et les résumés d\'une cassette dans une archive .zip, et un import les ramène. Diktafon n\'envoie rien de lui-même — uniquement vers le laptop configuré dans « Envoi vers le laptop ».';
 
   @override
   String get groupExport => 'Export';
@@ -697,6 +697,41 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncQueued => 'Mis en file pour le laptop.';
+
+  @override
+  String get syncScan => 'SCANNER';
+
+  @override
+  String get syncScanTitle => 'Scanner l\'adresse';
+
+  @override
+  String get syncScanHint =>
+      'Visez le code affiché par le receveur sur le laptop.';
+
+  @override
+  String syncScanFailed(String error) {
+    return 'Caméra indisponible : $error';
+  }
+
+  @override
+  String get syncDestinationTitle => 'OÙ SUR LE LAPTOP ?';
+
+  @override
+  String syncDestinationHint(String label) {
+    return 'Le laptop n\'a pas encore de place pour « $label ». Choisissez le dossier de projet où la ranger — la question n\'est posée qu\'une fois, et ce qui est déjà arrivé y sera déplacé.';
+  }
+
+  @override
+  String get syncDestinationInbox => 'Boîte de réception — décider plus tard';
+
+  @override
+  String syncSentTo(String path) {
+    return 'Envoyé vers $path.';
+  }
+
+  @override
+  String get syncQueuedOffline =>
+      'Laptop endormi — mis en file jusqu\'à son réveil.';
 
   @override
   String get syncSendCassette => 'Envoyer vers le laptop';

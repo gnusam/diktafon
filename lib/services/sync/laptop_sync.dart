@@ -33,6 +33,45 @@ class SyncException implements Exception {
       statusCode == null ? message : 'HTTP $statusCode — $message';
 }
 
+/// Where the laptop files a cassette, and what else it could offer — the
+/// answer to "does this one already have a home?".
+class SyncDestination {
+  const SyncDestination({
+    required this.slug,
+    required this.known,
+    required this.path,
+    required this.inbox,
+    required this.choices,
+  });
+
+  final String slug;
+
+  /// True when the laptop has a decision for this cassette (the user's own,
+  /// or a project directory of exactly its name): send, no question asked.
+  final bool known;
+
+  /// Where it lands today — shown so the user knows what "send" means.
+  final String path;
+
+  /// The value that means "leave it in the inbox".
+  final String inbox;
+
+  /// Directory names the laptop offers. Only these are accepted back.
+  final List<String> choices;
+
+  factory SyncDestination.fromJson(Map<String, dynamic> json) =>
+      SyncDestination(
+        slug: json['slug'] as String? ?? '',
+        known: json['known'] as bool? ?? false,
+        path: json['path'] as String? ?? '',
+        inbox: json['inbox'] as String? ?? '@inbox',
+        choices: [
+          for (final choice in (json['choices'] as List? ?? const []))
+            choice.toString(),
+        ],
+      );
+}
+
 class LaptopSync {
   LaptopSync({
     HttpClient Function()? clientFactory,
@@ -61,6 +100,50 @@ class LaptopSync {
     } on FormatException {
       // Something answered, but it is not a Diktafon receiver — a proxy
       // error page, a captive portal, the wrong host entirely.
+      throw SyncException('unexpected answer', permanent: true);
+    }
+  }
+
+  /// Asks where a cassette would be filed. The phone never sends a path:
+  /// it gets names back and hands one of them over.
+  Future<SyncDestination> destination(SyncTarget target, String label) async {
+    final body = await _send(
+      target,
+      'v1/destination',
+      query: {'label': label},
+      method: 'GET',
+      timeout: pingTimeout,
+    );
+    try {
+      return SyncDestination.fromJson(
+          jsonDecode(body) as Map<String, dynamic>);
+    } on FormatException {
+      throw SyncException('unexpected answer', permanent: true);
+    }
+  }
+
+  /// Records the user's choice. The laptop moves whatever already landed
+  /// under the old destination, so placing a cassette after the fact does
+  /// not scatter it.
+  Future<String> chooseDestination(
+    SyncTarget target, {
+    required String label,
+    required String choice,
+  }) async {
+    final payload = utf8.encode(jsonEncode({'label': label, 'choice': choice}));
+    final body = await _send(
+      target,
+      'v1/destination',
+      method: 'POST',
+      timeout: pingTimeout,
+      contentType: 'application/json; charset=utf-8',
+      contentLength: payload.length,
+      writeBody: (request) async => request.add(payload),
+    );
+    try {
+      return (jsonDecode(body) as Map<String, dynamic>)['path'] as String? ??
+          '';
+    } on FormatException {
       throw SyncException('unexpected answer', permanent: true);
     }
   }
@@ -117,13 +200,14 @@ class LaptopSync {
     String path, {
     required String method,
     required Duration timeout,
+    Map<String, String>? query,
     String? contentType,
     int? contentLength,
     Future<void> Function(HttpClientRequest request)? writeBody,
   }) async {
     final client = _clientFactory()..connectionTimeout = pingTimeout;
     try {
-      final uri = target.endpoint(path);
+      final uri = target.endpoint(path, query: query);
       final request = await client.openUrl(method, uri).timeout(timeout);
       // A redirect on a POST would silently drop the body; treat any 3xx as
       // a misconfigured target instead.
