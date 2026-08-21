@@ -284,7 +284,7 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
             textDirection: TextDirection.ltr,
             child: isRecordingHere
                 ? _RecordingPanel(elapsed: recording.elapsed)
-                : _deck(playback, tape),
+                : _deck(playback, tape, cassette),
           ),
         ],
       )),
@@ -421,9 +421,11 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
 
   /// Transport (§5.3): rewind / play–pause / fast-forward, record at the
   /// right end. All hops are global across memo boundaries (D5).
-  Widget _deck(TapePlaybackState playback, Tape tape) {
+  Widget _deck(TapePlaybackState playback, Tape tape, Cassette cassette) {
     final tapeColors = context.tape;
     final player = ref.read(tapePlayerProvider);
+    final syncOn =
+        ref.watch(settingsProvider).value?.syncConfigured ?? false;
     return Container(
       decoration: BoxDecoration(
         color: tapeColors.surface,
@@ -456,6 +458,19 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
               onPressed: tape.isEmpty ? null : () => player.skipBy(15000),
             ),
             const Spacer(),
+            // Fork: eject the tape towards the laptop. Sits with the
+            // transport keys because that is where the hand already is —
+            // red stays reserved for record.
+            if (syncOn) ...[
+              DeckKey(
+                glyph: DeckGlyph.eject,
+                semanticLabel: context.l10n.syncSendCassette,
+                onPressed: tape.isEmpty || _sending
+                    ? null
+                    : () => _sendToLaptop(cassette),
+              ),
+              const SizedBox(width: 10),
+            ],
             DeckKey(
               glyph: DeckGlyph.record,
               style: DeckKeyStyle.record,
@@ -535,7 +550,19 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
   /// question; one it does not asks — once — which project folder it
   /// belongs in, and the laptop moves anything that already landed
   /// elsewhere.
+  bool _sending = false;
+
   Future<void> _sendToLaptop(Cassette cassette) async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    try {
+      await _send(cassette);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _send(Cassette cassette) async {
     final l10n = context.l10n;
     final target = SyncTarget.parse(ref.read(settingsProvider).value?.syncUrl);
     if (target == null) return; // the menu entry is not offered in that case

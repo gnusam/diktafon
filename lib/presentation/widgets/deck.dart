@@ -4,7 +4,7 @@ import '../theme/tape_colors.dart';
 
 /// Tape-deck transport keys (§5.3, mockup 03): squared keys with 2 px ink
 /// borders and offset cardstock shadows. Red is reserved for record.
-enum DeckGlyph { rewind, play, pause, fastForward, record, stop, plus }
+enum DeckGlyph { rewind, play, pause, fastForward, record, stop, plus, eject }
 
 enum DeckKeyStyle { paper, ink, record }
 
@@ -113,6 +113,16 @@ class _GlyphPainter extends CustomPainter {
       case DeckGlyph.plus:
         canvas.drawRect(Rect.fromLTWH(c.dx - 1, c.dy - 9, 2, 18), fill);
         canvas.drawRect(Rect.fromLTWH(c.dx - 9, c.dy - 1, 18, 2), fill);
+      // Eject (fork): the deck's own word for "take the tape out of here" —
+      // triangle over a bar, pointing away from the machine.
+      case DeckGlyph.eject:
+        final path = Path()
+          ..moveTo(c.dx, c.dy - 9)
+          ..lineTo(c.dx + 9, c.dy - 1)
+          ..lineTo(c.dx - 9, c.dy - 1)
+          ..close();
+        canvas.drawPath(path, fill);
+        canvas.drawRect(Rect.fromLTWH(c.dx - 9, c.dy + 4, 18, 3), fill);
     }
   }
 
