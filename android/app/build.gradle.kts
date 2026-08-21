@@ -31,8 +31,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "cz.mod42.diktafon"
+        // Personal fork: its own id so it installs alongside the F-Droid
+        // build instead of colliding with it (different signing keys), and
+        // keeps its own private data directory.
+        applicationId = "cz.mod42.diktafon.sam"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

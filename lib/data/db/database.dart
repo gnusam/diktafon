@@ -50,6 +50,10 @@ class Memos extends Table {
   IntColumn get foldedAt => integer().nullable()();  // epoch ms
   TextColumn get status => text()();
 
+  /// Fork addition (sync, M4): when the laptop receiver last acknowledged
+  /// this memo. Null → never sent — which is what the upload job looks for.
+  IntColumn get syncedAt => integer().nullable()();  // epoch ms
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -63,6 +67,12 @@ class Jobs extends Table {
   TextColumn get status => text()();
   IntColumn get attempts => integer().withDefault(const Constant(0))();
   IntColumn get createdAt => integer()();  // epoch ms
+
+  /// Fork addition (sync, M4): earliest epoch ms this job may run again;
+  /// null means "now". The drain is sequential, so a job that wants to back
+  /// off for minutes (an upload with no laptop listening) parks its next
+  /// slot here instead of sleeping in the loop and holding up transcription.
+  IntColumn get nextAttemptAt => integer().nullable()();  // epoch ms
 
   @override
   Set<Column> get primaryKey => {id};
@@ -86,7 +96,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +108,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             // The retired transcript cleanup's raw-take column (§6.8).
             await m.addColumn(memos, memos.rawTranscript);
+          }
+          if (from < 4) {
+            // M4 (fork): laptop sync — per-memo acknowledgement and the
+            // job-level backoff slot it needs.
+            await m.addColumn(memos, memos.syncedAt);
+            await m.addColumn(jobs, jobs.nextAttemptAt);
           }
         },
         beforeOpen: (details) async {

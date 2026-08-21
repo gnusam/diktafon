@@ -175,6 +175,7 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
                   currentSeed: cassette.colorSeed,
                 ),
               'retranscribe' => _retranscribe(cassette, tape.memoCount),
+              'sync' => _sendToLaptop(cassette),
               _ => _deleteCassette(cassette, tape.memoCount),
             },
             itemBuilder: (_) => [
@@ -186,6 +187,15 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
                   value: 'retranscribe',
                   enabled: !tape.isEmpty,
                   child: Text(context.l10n.retranscribe)),
+              // Fork addition: an explicit send re-uploads the whole tape,
+              // acknowledged memos included — the receiver is idempotent,
+              // and "send it again" is exactly what the user means when the
+              // laptop copy went missing.
+              if (ref.watch(settingsProvider).value?.syncConfigured ?? false)
+                PopupMenuItem(
+                    value: 'sync',
+                    enabled: !tape.isEmpty,
+                    child: Text(context.l10n.syncSendCassette)),
               PopupMenuItem(
                   value: 'delete', child: Text(context.l10n.deleteCassette)),
             ],
@@ -255,6 +265,9 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
                       playing: playback.playing,
                       seekCount: playback.seekCount,
                       modelReady: _modelReady(),
+                      showSyncMarks:
+                          ref.watch(settingsProvider).value?.syncConfigured ??
+                              false,
                       onSeekGlobalMs: (ms) => player.seekGlobal(ms),
                       onRetryMemo: (memoId) => ref
                           .read(jobQueueProvider)
@@ -512,6 +525,16 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
         false;
     if (!confirmed) return;
     await ref.read(jobQueueProvider).retranscribeCassette(cassette.id);
+  }
+
+  Future<void> _sendToLaptop(Cassette cassette) async {
+    final l10n = context.l10n;
+    await ref
+        .read(jobQueueProvider)
+        .enqueueUploads(cassetteId: cassette.id, force: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.syncQueued)));
   }
 
   Future<void> _deleteCassette(Cassette cassette, int memoCount) async {

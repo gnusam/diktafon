@@ -62,6 +62,7 @@ class Memo {
     this.detectedLang,
     this.transcript,
     this.memoSummary,
+    this.syncedAt,
   });
 
   final String id;
@@ -79,6 +80,10 @@ class Memo {
   /// pending — and permanently for short transcripts, which are their own
   /// summary (§6.7).
   final String? memoSummary;
+
+  /// Fork addition: when the laptop receiver last acknowledged this memo.
+  /// Null → it has not landed there (yet, or ever — sync is opt-in).
+  final DateTime? syncedAt;
 }
 
 /// Structured transcription output (§6.3) — engine-agnostic.

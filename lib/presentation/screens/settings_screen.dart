@@ -18,6 +18,7 @@ import '../widgets/directional_chevrons.dart';
 import '../widgets/ink_progress_bar.dart';
 import '../widgets/ink_toggle.dart';
 import '../widgets/settings_rows.dart';
+import '../widgets/sync_settings.dart';
 import 'backup_screen.dart';
 
 /// Settings (§5.5, mockup 05): grouped ink-bordered cards, rectangular
@@ -114,6 +115,7 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => _pickTheme(context, repo, settings),
             ),
           ]),
+          SyncSettingsGroup(settings: settings),
           SettingsGroup(title: l10n.groupYourData, rows: [
             SettingsRow(
               title: l10n.backupExport,

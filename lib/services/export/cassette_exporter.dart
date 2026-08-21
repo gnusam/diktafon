@@ -133,23 +133,34 @@ class CassetteExporter {
       final memo = memos[i];
       buffer
         ..writeln('## ${labels.memoHeading(i + 1, _stamp(memo.createdAt))}')
-        ..writeln();
-      if (memo.memoSummary != null) {
-        buffer
-          ..writeln('> ${memo.memoSummary}')
-          ..writeln();
-      }
-      final transcript = memo.transcript;
-      buffer
-        ..writeln(switch (transcript) {
-          null => labels.notTranscribed,
-          Transcript(isEmpty: true) => labels.noSpeech,
-          _ => _plainText(transcript),
-        })
+        ..writeln()
+        ..writeln(memoSectionBody(memo))
         ..writeln();
     }
     return buffer.toString();
   }
+
+  /// One memo's section *without* its `## …` heading: the gist quote where
+  /// there is one, then the transcript (or the localized placeholder for a
+  /// memo that has none). Split out of [_transcriptMd] so the laptop sync
+  /// (fork) can send memos one at a time and let the receiver do the
+  /// numbering — the rendering itself stays in one place, in the app's
+  /// language.
+  String memoSectionBody(Memo memo) {
+    final transcript = memo.transcript;
+    final text = switch (transcript) {
+      null => labels.notTranscribed,
+      Transcript(isEmpty: true) => labels.noSpeech,
+      _ => _plainText(transcript),
+    };
+    return memo.memoSummary == null
+        ? text
+        : '> ${memo.memoSummary}\n\n$text';
+  }
+
+  /// The date stamp used in section headings — the receiver rebuilds
+  /// headings itself and must format them the same way.
+  static String stamp(DateTime t) => _stamp(t);
 
   Map<String, Object?> _manifest(Cassette cassette, List<Memo> memos,
           Map<String, String?> audioNames) =>

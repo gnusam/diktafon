@@ -658,7 +658,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutBody.
   ///
   /// In en, this message translates to:
-  /// **'Diktafon listens, writes and summarises right here on your phone.\n\nRecordings, transcripts and summaries never leave the device. There is no account, no cloud and no analytics. The only way data leaves is a backup or export you start yourself.'**
+  /// **'Diktafon listens, writes and summarises right here on your phone.\n\nRecordings, transcripts and summaries never leave the device on their own. There is no account, no cloud and no analytics. Data leaves only through a backup or export you start yourself — or, in this fork, to the laptop address you set up under Laptop sync, and to nowhere else.'**
   String get aboutBody;
 
   /// No description provided for @aboutOpenSource.
@@ -1074,6 +1074,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{label} installed'**
   String notifModelInstalled(String label);
+
+  /// No description provided for @groupSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Laptop sync'**
+  String get groupSync;
+
+  /// No description provided for @syncTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Laptop address'**
+  String get syncTarget;
+
+  /// No description provided for @syncTargetUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up'**
+  String get syncTargetUnset;
+
+  /// No description provided for @syncTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'LAPTOP ADDRESS'**
+  String get syncTargetTitle;
+
+  /// No description provided for @syncTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the address your receiver printed. Leave it empty to stop sending anything.'**
+  String get syncTargetHint;
+
+  /// No description provided for @syncTargetInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not an address this can send to.'**
+  String get syncTargetInvalid;
+
+  /// No description provided for @syncTest.
+  ///
+  /// In en, this message translates to:
+  /// **'TEST'**
+  String get syncTest;
+
+  /// No description provided for @syncTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'TESTING…'**
+  String get syncTesting;
+
+  /// No description provided for @syncTestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'{host} answered.'**
+  String syncTestOk(String host);
+
+  /// No description provided for @syncTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer: {error}'**
+  String syncTestFailed(String error);
+
+  /// No description provided for @syncAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Send automatically'**
+  String get syncAuto;
+
+  /// No description provided for @syncAutoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Each memo leaves as soon as it is written up'**
+  String get syncAutoDesc;
+
+  /// No description provided for @syncPendingRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to be sent'**
+  String get syncPendingRow;
+
+  /// No description provided for @syncPendingNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is on the laptop'**
+  String get syncPendingNone;
+
+  /// Memos recorded but not yet acknowledged by the laptop
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 memo waiting} other{{count} memos waiting}}'**
+  String syncPending(int count);
+
+  /// No description provided for @syncSendNow.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND'**
+  String get syncSendNow;
+
+  /// No description provided for @syncQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued for the laptop.'**
+  String get syncQueued;
+
+  /// No description provided for @syncSendCassette.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to laptop'**
+  String get syncSendCassette;
 
   /// No description provided for @notifRecording.
   ///

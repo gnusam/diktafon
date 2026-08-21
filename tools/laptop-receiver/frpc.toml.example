@@ -1,0 +1,18 @@
+# Copy to frpc.toml and fill in the secrets (frpc.toml is gitignored).
+# The token is the one already configured in /etc/frp/frps.toml on the
+# server; the basic-auth pair is what the phone pastes into the app.
+serverAddr = "olibrio.fr"
+serverPort = 7001
+transport.protocol = "quic"
+
+auth.method = "token"
+auth.token = "REPLACE_WITH_FRPS_TOKEN"
+
+[[proxies]]
+name = "diktafon"
+type = "http"
+localIP = "receiver"
+localPort = 8099
+customDomains = ["diktafon.tunnel.olibrio.fr"]
+httpUser = "REPLACE_WITH_USER"
+httpPassword = "REPLACE_WITH_PASSWORD"

@@ -1,0 +1,7 @@
+# Optional: react to the cable instead of waiting for the next timer tick.
+# Install with:
+#   sudo install -m 0644 99-diktafon-power.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload
+# The timer alone is enough; this only shortens the delay to ~a second.
+SUBSYSTEM=="power_supply", ACTION=="change", \
+  RUN+="/usr/bin/systemctl --machine=sam@.host --user start diktafon-power-guard.service"

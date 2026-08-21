@@ -29,6 +29,7 @@ class TranscriptView extends StatefulWidget {
     required this.playing,
     this.seekCount = 0,
     this.modelReady = false,
+    this.showSyncMarks = false,
     this.onSeekGlobalMs,
     this.onRetryMemo,
     this.onEditMemo,
@@ -36,6 +37,12 @@ class TranscriptView extends StatefulWidget {
   });
 
   final Tape tape;
+
+  /// Fork addition: mark memos the laptop has not acknowledged. Off unless
+  /// sync is configured — with no target, "not sent" is not a state worth
+  /// drawing attention to.
+  final bool showSyncMarks;
+
   final int colorSeed;
   final int globalMs;
   final int currentMemoIndex;
@@ -207,6 +214,7 @@ class _TranscriptViewState extends State<TranscriptView> {
             _MemoDivider(
               memo: memo,
               ordinal: i + 1,
+              pendingSync: widget.showSyncMarks && memo.syncedAt == null,
               hue: context.tape.hues[memoHueIndex(widget.colorSeed, i)],
               first: i == 0,
               onRetry: widget.onRetryMemo == null
@@ -303,6 +311,7 @@ class _MemoDivider extends StatelessWidget {
     required this.ordinal,
     required this.hue,
     required this.first,
+    this.pendingSync = false,
     this.onRetry,
     this.onCopy,
     this.onEdit,
@@ -313,6 +322,10 @@ class _MemoDivider extends StatelessWidget {
   final int ordinal;
   final Color hue;
   final bool first;
+
+  /// Recorded, but not yet acknowledged by the laptop (fork).
+  final bool pendingSync;
+
   final VoidCallback? onRetry;
 
   /// The quiet per-memo menu at the stamp's right edge; entries appear only
@@ -366,14 +379,29 @@ class _MemoDivider extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.l10n.memoDivider(ordinal, stamp),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: tape.ink,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        context.l10n.memoDivider(ordinal, stamp),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: tape.ink,
+                        ),
+                      ),
+                    ),
+                    if (pendingSync)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(start: 5),
+                        child: Tooltip(
+                          message: context.l10n.syncPendingRow,
+                          child: Icon(Icons.arrow_circle_up_outlined,
+                              size: 12, color: tape.ink2),
+                        ),
+                      ),
+                  ],
                 ),
                 if (caption != null)
                   Padding(

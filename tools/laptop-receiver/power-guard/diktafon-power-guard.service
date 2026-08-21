@@ -1,0 +1,10 @@
+[Unit]
+Description=Diktafon receiver — run only on mains power
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dev/perso/diktafon-sam/tools/laptop-receiver/power-guard/diktafon-power-guard
+
+[Install]
+WantedBy=default.target

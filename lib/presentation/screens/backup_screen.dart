@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../application/providers.dart';
 import '../../data/repositories/cassette_repository.dart';
 import '../../domain/models.dart';
+import '../../l10n/export_labels.dart';
 import '../../l10n/l10n.dart';
 import '../../services/export/cassette_exporter.dart';
 import '../../services/system/system_settings.dart';
@@ -228,15 +229,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           : 'diktafon-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.zip';
 
   /// The exported files read in the app's language too (§13).
-  ExportLabels _exportLabels(BuildContext context) {
-    final l10n = context.l10n;
-    return ExportLabels(
-      untitled: l10n.untitledCassette,
-      exportedNote: l10n.exportNote,
-      summaryHeading: l10n.exportSummaryHeading,
-      memoHeading: l10n.memoDivider,
-      notTranscribed: l10n.exportNotTranscribed,
-      noSpeech: l10n.noSpeech,
-    );
-  }
+  ExportLabels _exportLabels(BuildContext context) =>
+      exportLabelsFrom(context.l10n);
 }

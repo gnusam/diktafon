@@ -1,0 +1,41 @@
+# Diktafon receiver + its tunnel client.
+#
+# Deliberately `restart: "no"`: the power guard owns when this runs (see
+# power-guard/). A laptop that boots on battery must not open a tunnel.
+services:
+  receiver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diktafon-receiver
+    restart: "no"
+    # Same uid as the user, or every memo lands root-owned in ~/dev/perso.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      DIKTAFON_PROJECTS: /projects
+      DIKTAFON_INBOX: /inbox
+      DIKTAFON_TOKEN: "${DIKTAFON_TOKEN:-}"
+      DIKTAFON_HOSTNAME: "${DIKTAFON_HOSTNAME:-laptop}"
+      # Lets notify-send reach the desktop session from inside the container.
+      DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/${HOST_UID:-1000}/bus"
+    volumes:
+      - "${DIKTAFON_PROJECTS:-${HOME}/dev/perso}:/projects"
+      - "${DIKTAFON_INBOX:-${HOME}/diktafon-inbox}:/inbox"
+      - "/run/user/${HOST_UID:-1000}/bus:/run/user/${HOST_UID:-1000}/bus"
+    expose:
+      - "8099"
+
+  frpc:
+    build:
+      context: .
+      dockerfile: frpc.Dockerfile
+    container_name: diktafon-frpc
+    restart: "no"
+    command: frpc -c /etc/frp/frpc.toml
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    depends_on:
+      - receiver

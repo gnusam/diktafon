@@ -59,3 +59,6 @@ CLAUDE.md
 docs/
 
 quality_test/
+# Laptop receiver secrets (fork)
+tools/laptop-receiver/.env
+tools/laptop-receiver/frpc.toml

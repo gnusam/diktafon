@@ -130,9 +130,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    // Only the chime keeps a toggle; the summary-model row shows the
-    // selected tier (the static catalog's label) while summaries are on…
-    expect(find.byType(InkToggle), findsOneWidget);
+    // Two toggles, and neither belongs to the summary-model row: the
+    // boundary chime, and the fork's automatic laptop sync. The model row
+    // shows the selected tier (the static catalog's label) instead…
+    expect(find.byType(InkToggle), findsNWidgets(2));
     expect(find.textContaining('Qwen3 1.7B'), findsOneWidget);
     expect(find.text('No summaries'), findsNothing);
 

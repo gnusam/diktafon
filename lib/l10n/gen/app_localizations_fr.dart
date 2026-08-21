@@ -337,7 +337,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'Diktafon écoute, écrit et résume directement sur votre téléphone.\n\nEnregistrements, transcriptions et résumés ne quittent jamais l\'appareil. Pas de compte, pas de cloud, pas de statistiques. Les données ne sortent que par une sauvegarde ou un export que vous lancez vous-même.';
+      'Diktafon écoute, écrit et résume directement sur votre téléphone.\n\nEnregistrements, transcriptions et résumés ne quittent pas l\'appareil d\'eux-mêmes. Pas de compte, pas de cloud, pas de statistiques. Les données ne sortent que par une sauvegarde ou un export que vous lancez vous-même — ou, dans ce fork, vers l\'adresse de laptop que vous avez configurée dans « Envoi vers le laptop », et vers nulle part d\'autre.';
 
   @override
   String get aboutOpenSource => 'Diktafon est gratuit et open source :';
@@ -633,6 +633,73 @@ class AppLocalizationsFr extends AppLocalizations {
   String notifModelInstalled(String label) {
     return '$label installé';
   }
+
+  @override
+  String get groupSync => 'Envoi vers le laptop';
+
+  @override
+  String get syncTarget => 'Adresse du laptop';
+
+  @override
+  String get syncTargetUnset => 'Non configuré';
+
+  @override
+  String get syncTargetTitle => 'ADRESSE DU LAPTOP';
+
+  @override
+  String get syncTargetHint =>
+      'Collez l\'adresse affichée par votre receveur. Laissez vide pour ne plus rien envoyer.';
+
+  @override
+  String get syncTargetInvalid => 'Ce n\'est pas une adresse utilisable.';
+
+  @override
+  String get syncTest => 'TESTER';
+
+  @override
+  String get syncTesting => 'TEST EN COURS…';
+
+  @override
+  String syncTestOk(String host) {
+    return '$host répond.';
+  }
+
+  @override
+  String syncTestFailed(String error) {
+    return 'Pas de réponse : $error';
+  }
+
+  @override
+  String get syncAuto => 'Envoi automatique';
+
+  @override
+  String get syncAutoDesc => 'Chaque mémo part dès qu\'il est mis au propre';
+
+  @override
+  String get syncPendingRow => 'En attente d\'envoi';
+
+  @override
+  String get syncPendingNone => 'Tout est sur le laptop';
+
+  @override
+  String syncPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mémos en attente',
+      one: '1 mémo en attente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncSendNow => 'ENVOYER';
+
+  @override
+  String get syncQueued => 'Mis en file pour le laptop.';
+
+  @override
+  String get syncSendCassette => 'Envoyer vers le laptop';
 
   @override
   String get notifRecording => 'Enregistrement en cours';

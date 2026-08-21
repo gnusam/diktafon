@@ -14,6 +14,7 @@ import '../data/repositories/settings_repository.dart';
 import '../domain/models.dart';
 import '../domain/script.dart';
 import '../domain/tape.dart';
+import '../l10n/export_labels.dart';
 import '../services/audio/audio_transcoder.dart';
 import '../services/audio/capture_recovery.dart';
 import '../services/audio/pcm_decoder.dart';
@@ -31,6 +32,7 @@ import '../services/providers/whisper/whisper_bindings.dart';
 import '../services/providers/whisper/whisper_model_manager.dart';
 import '../services/providers/whisper/whisper_transcription_provider.dart';
 import '../services/providers/whisper/whisper_worker.dart';
+import '../services/sync/laptop_sync.dart';
 import '../services/system/system_settings.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -103,18 +105,33 @@ final summarizationProvider = Provider<SummarizationProvider>((ref) {
   );
 });
 
+/// Fork addition: the laptop receiver client (§sync). One per app; the
+/// target itself lives in settings and is read per upload, so pasting a new
+/// address takes effect without rebuilding anything.
+final laptopSyncProvider = Provider<LaptopSync>((ref) => LaptopSync());
+
 /// Deliberately *not* watching the two engine providers: the queue survives
 /// a tier switch and resolves them per job instead (see JobQueue docs).
-final jobQueueProvider = Provider<JobQueue>((ref) => JobQueue(
-      ref.watch(appDatabaseProvider),
-      ref.watch(memoRepositoryProvider),
-      ref.watch(cassetteRepositoryProvider),
-      ref.watch(settingsRepositoryProvider),
-      () => ref.read(transcriptionProvider),
-      () => ref.read(summarizationProvider),
-      transcoder: () => ref.read(audioTranscoderProvider),
-      systemZhScript: systemZhScript,
-    ));
+final jobQueueProvider = Provider<JobQueue>((ref) {
+  final queue = JobQueue(
+    ref.watch(appDatabaseProvider),
+    ref.watch(memoRepositoryProvider),
+    ref.watch(cassetteRepositoryProvider),
+    ref.watch(settingsRepositoryProvider),
+    () => ref.read(transcriptionProvider),
+    () => ref.read(summarizationProvider),
+    transcoder: () => ref.read(audioTranscoderProvider),
+    sync: () => ref.read(laptopSyncProvider),
+    exportLabels: systemExportLabels,
+    systemZhScript: systemZhScript,
+  );
+  ref.onDispose(queue.dispose);
+  return queue;
+});
+
+/// How many memos have never reached the laptop — the Settings row's badge.
+final pendingUploadsProvider = StreamProvider<int>(
+    (ref) => ref.watch(jobQueueProvider).watchPendingUploads());
 
 /// §6.4: WAV capture → archival AAC (MediaCodec/AVAssetWriter on mobile,
 /// ffmpeg CLI on desktop).

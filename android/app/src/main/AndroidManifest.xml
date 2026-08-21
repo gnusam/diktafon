@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Backup policy (§8): DB auto-backs-up; audio/models excluded — see res/xml. -->
     <application
-        android:label="Diktafon"
+        android:label="Diktafon Sam"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"

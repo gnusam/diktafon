@@ -8,12 +8,17 @@ import 'package:uuid/uuid.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/cassette_repository.dart';
 import '../../data/repositories/memo_repository.dart';
+import '../../data/repositories/mappers.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/models.dart';
 import '../providers/llm/summary_prompts.dart' show estimateTokens;
 import '../audio/audio_transcoder.dart';
+import '../export/cassette_exporter.dart';
 import '../providers/summarization_provider.dart';
 import '../providers/transcription_provider.dart';
+import '../sync/laptop_sync.dart';
+import '../sync/sync_payload.dart';
+import '../sync/sync_target.dart';
 import 'chinese_script.dart';
 
 /// The §6.5 job types. The cassette overview is always rebuilt from *all*
@@ -28,7 +33,8 @@ enum JobType {
   summarizeMemo,
   updateCassetteSummary,
   recomputeCassetteSummary,
-  transcodeAudio;
+  transcodeAudio,
+  uploadMemo;
 
   /// Enrichment stages whose failure marks the memo `failed` (§14).
   /// `transcodeAudio` deliberately stays out: a WAV that never becomes AAC
@@ -36,6 +42,13 @@ enum JobType {
   /// never suffer for a codec hiccup.
   bool get targetsMemo =>
       this == transcribe || this == cleanupTranscript || this == summarizeMemo;
+
+  /// Fork addition (laptop sync): a stage whose failure is almost always
+  /// "the other end isn't listening yet" — a laptop on battery, asleep, or
+  /// simply elsewhere. Giving up after five tries would silently lose the
+  /// memo the user recorded *because* they wanted it on the laptop, so this
+  /// one retries for as long as it takes, parked between attempts.
+  bool get retriesForever => this == uploadMemo;
 }
 
 /// §6.7 (revised 2026-07-28): only transcripts estimated *longer* than this
@@ -56,6 +69,8 @@ class JobQueue {
   JobQueue(this._db, this._memos, this._cassettes, this._settings,
       this._transcription, this._summarization,
       {this._transcoder,
+      this._sync,
+      this._exportLabels = _defaultExportLabels,
       this._retryDelayUnit = const Duration(seconds: 1),
       this._systemZhScript = _defaultZhScript});
 
@@ -69,6 +84,17 @@ class JobQueue {
   /// §6.4: encodes finished WAV captures to the archival AAC. Null (tests
   /// that predate it) keeps transcode jobs parked in the queue.
   final AudioTranscoder Function()? _transcoder;
+
+  /// Fork addition: the laptop receiver client. Null (tests that predate
+  /// it) keeps upload jobs parked in the queue, exactly like a missing
+  /// transcoder does.
+  final LaptopSync Function()? _sync;
+
+  /// The strings a synced memo's markdown is rendered with — resolved from
+  /// the system locale, because jobs run with no widget tree to ask.
+  final ExportLabels Function() _exportLabels;
+
+  static ExportLabels _defaultExportLabels() => const ExportLabels();
 
   /// D8 amendment: the script an auto-detected `zh` memo is stored in —
   /// production wires the system locale; tests inject.
@@ -84,6 +110,7 @@ class JobQueue {
   final Map<String, CancelToken> _active = {};
 
   Future<void>? _draining;
+  Timer? _wake;
   bool _recoveredOrphans = false;
   static const _maxAttempts = 5;
 
@@ -100,6 +127,86 @@ class JobQueue {
     await _insertJob(JobType.transcodeAudio, memoId);
     unawaited(drain());
   }
+
+  /// Fork addition — laptop sync (opt-in). Queues whatever has not reached
+  /// the laptop: the whole library, one cassette, on demand. [force] also
+  /// re-sends memos already acknowledged (the receiver is idempotent by
+  /// memo id) and wakes jobs parked in their backoff — that is what the
+  /// user means by tapping "send" a second time.
+  Future<void> enqueueUploads({String? cassetteId, bool force = false}) async {
+    if (_sync == null) return;
+    if (!(await _settings.get()).syncConfigured) return;
+    // Successive `where`s AND together — the tape order is what makes a
+    // bulk send arrive in the order it was recorded.
+    final query = _db.select(_db.memos)
+      ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]);
+    if (!force) query.where((m) => m.syncedAt.isNull());
+    if (cassetteId != null) {
+      query.where((m) => m.cassetteId.equals(cassetteId));
+    }
+    for (final row in await query.get()) {
+      await _insertUploadJob(row.id, force: force);
+    }
+    unawaited(drain());
+  }
+
+  /// Count for the Settings row ("send N pending memos"): memos the laptop
+  /// has never acknowledged. Zero is the steady state once sync is on.
+  Stream<int> watchPendingUploads() {
+    final count = _db.memos.id.count();
+    return (_db.selectOnly(_db.memos)
+          ..addColumns([count])
+          ..where(_db.memos.syncedAt.isNull()))
+        .watchSingle()
+        .map((row) => row.read(count) ?? 0);
+  }
+
+  /// The automatic path: called wherever a memo reaches its final content.
+  /// Silent unless sync is both configured *and* set to send by itself.
+  Future<void> _maybeEnqueueUpload(String memoId) async {
+    if (_sync == null) return;
+    final settings = await _settings.get();
+    if (!settings.syncConfigured || !settings.syncAuto) return;
+    await _insertUploadJob(memoId);
+    unawaited(drain());
+  }
+
+  /// One upload job per memo at a time. An existing one is reused rather
+  /// than duplicated; [force] pulls it out of its backoff so an explicit
+  /// send retries now instead of in a quarter of an hour.
+  Future<void> _insertUploadJob(String memoId, {bool force = false}) async {
+    final existing = await (_db.select(_db.jobs)
+          ..where((j) =>
+              j.targetId.equals(memoId) &
+              j.type.equals(JobType.uploadMemo.name)))
+        .get();
+    final live =
+        existing.where((j) => j.status == 'queued' || j.status == 'running');
+    if (live.isNotEmpty) {
+      if (!force) return;
+      for (final job in live) {
+        await (_db.update(_db.jobs)..where((j) => j.id.equals(job.id)))
+            .write(const JobsCompanion(
+                attempts: Value(0), nextAttemptAt: Value(null)));
+      }
+      return;
+    }
+    // A row that gave up permanently (bad credentials, refused payload) is
+    // replaced, not kept alongside the new attempt.
+    for (final job in existing) {
+      await (_db.delete(_db.jobs)..where((j) => j.id.equals(job.id))).go();
+    }
+    await _insertJob(JobType.uploadMemo, memoId);
+  }
+
+  Future<bool> _hasPendingTranscode(String memoId) async =>
+      (await (_db.select(_db.jobs)
+                ..where((j) =>
+                    j.targetId.equals(memoId) &
+                    j.type.equals(JobType.transcodeAudio.name) &
+                    j.status.isIn(['queued', 'running'])))
+              .get())
+          .isNotEmpty;
 
   /// Failed memo → back on the queue at the right stage (§14 retry
   /// affordance): no transcript yet → transcribe again, otherwise only the
@@ -134,12 +241,16 @@ class JobQueue {
     await _db.transaction(() async {
       await _memos.setEditedTranscript(memoId, transcript,
           wantsGist ? MemoStatus.transcribed : MemoStatus.ready);
+      // What the laptop holds describes the old words: the memo counts as
+      // unsent again (the gist path re-sends after its own stage).
+      await _memos.clearSynced(memoId);
       if (wantsGist) {
         await _insertJob(JobType.summarizeMemo, memoId);
       } else {
         await _enqueueCassetteUpdate(row.cassetteId);
       }
     });
+    if (!wantsGist) await _maybeEnqueueUpload(memoId);
     unawaited(drain());
   }
 
@@ -213,7 +324,12 @@ class JobQueue {
       // completed jobs are deleted outright now (see _run), so sweep the
       // legacy ones too instead of scanning them on every drain forever.
       await (_db.delete(_db.jobs)..where((j) => j.status.equals('done'))).go();
+      await _sweepUnsynced();
     }
+    // Upload jobs parked in this pass: their next slot is minutes away, and
+    // re-picking them would spin the loop instead of letting the rest of
+    // the queue through.
+    final parked = <String>{};
     while (true) {
       // Enrichment waits for a provisioned model (§14) — and summarization
       // additionally for the summaries switch (the model picker's "No
@@ -238,15 +354,83 @@ class JobQueue {
           JobType.recomputeCassetteSummary.name,
         ]);
       }
+      // Uploading needs a wired client and a configured target; without
+      // either, the rows wait (nothing is lost — the memos keep their null
+      // `syncedAt` and go up the day sync is set up).
+      if (_sync != null && settings.syncConfigured) {
+        runnable.add(JobType.uploadMemo.name);
+      }
 
+      final now = DateTime.now().millisecondsSinceEpoch;
       final job = await (_db.select(_db.jobs)
-            ..where((j) => j.status.equals('queued') & j.type.isIn(runnable))
+            ..where((j) {
+              var where = j.status.equals('queued') &
+                  j.type.isIn(runnable) &
+                  (j.nextAttemptAt.isNull() |
+                      j.nextAttemptAt.isSmallerOrEqualValue(now));
+              if (parked.isNotEmpty) {
+                where = where & j.id.isNotIn(parked.toList());
+              }
+              return where;
+            })
             ..orderBy([(j) => OrderingTerm.asc(j.createdAt)])
             ..limit(1))
           .getSingleOrNull();
-      if (job == null) return;
+      if (job == null) {
+        await _scheduleWake();
+        return;
+      }
       await _run(job);
+      if (JobType.values.byName(job.type).retriesForever) parked.add(job.id);
     }
+  }
+
+  /// Nothing is runnable *now*, but a parked upload may become runnable
+  /// later: wake the drain when the earliest one comes due, so a memo goes
+  /// up as soon as the laptop is reachable again — no user gesture, no app
+  /// restart. Only ever one timer, always for the nearest deadline.
+  Future<void> _scheduleWake() async {
+    _wake?.cancel();
+    _wake = null;
+    if (_sync == null) return;
+    final next = _db.jobs.nextAttemptAt.min();
+    final row = await (_db.selectOnly(_db.jobs)
+          ..addColumns([next])
+          ..where(_db.jobs.status.equals('queued') &
+              _db.jobs.nextAttemptAt.isNotNull()))
+        .getSingleOrNull();
+    final at = row?.read(next);
+    if (at == null) return;
+    final delay = at - DateTime.now().millisecondsSinceEpoch;
+    if (delay <= 0) return; // due already: the next drain picks it up
+    _wake = Timer(Duration(milliseconds: delay), () {
+      _wake = null;
+      unawaited(drain());
+    });
+  }
+
+  /// Memos that never reached the laptop and have no job to take them
+  /// there: recorded before sync was set up, or orphaned by a kill between
+  /// the enrichment and the enqueue. Runs once per process, like the other
+  /// reconciliations, and only when sync sends by itself.
+  Future<void> _sweepUnsynced() async {
+    if (_sync == null) return;
+    final settings = await _settings.get();
+    if (!settings.syncConfigured || !settings.syncAuto) return;
+    final rows = await (_db.select(_db.memos)
+          ..where((m) => m.syncedAt.isNull())
+          ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
+        .get();
+    for (final row in rows) {
+      await _insertUploadJob(row.id);
+    }
+  }
+
+  /// Stops the wake-up timer — a queue outliving its app (tests, a disposed
+  /// provider) must not keep a timer alive.
+  void dispose() {
+    _wake?.cancel();
+    _wake = null;
   }
 
   Future<void> _run(JobRow job) async {
@@ -265,6 +449,8 @@ class JobQueue {
           await _updateCassetteSummary(job.targetId);
         case JobType.transcodeAudio:
           await _transcodeAudio(job.targetId);
+        case JobType.uploadMemo:
+          await _uploadMemo(job.targetId);
       }
       // Completed jobs are deleted, not archived: nothing reads them back,
       // and years of use would otherwise leave thousands of dead rows under
@@ -273,11 +459,22 @@ class JobQueue {
     } on TranscriptionCancelled {
       // Memo deleted while transcribing — the job is moot, not failed.
       await (_db.delete(_db.jobs)..where((j) => j.id.equals(job.id))).go();
-    } catch (_) {
+    } catch (error) {
       final attempts = job.attempts + 1;
-      final permanent = attempts >= _maxAttempts;
+      // A refused upload (wrong credentials, receiver saying no) is the one
+      // way this stage gives up: retrying a rejection forever would hide it.
+      final refused = error is SyncException && error.permanent;
+      final permanent =
+          refused || (attempts >= _maxAttempts && !type.retriesForever);
       await _setJob(job.id, permanent ? 'failed' : 'queued',
-          attempts: attempts);
+          attempts: attempts,
+          // Park the retry instead of sleeping on it: the drain is
+          // sequential, and a memo waiting on an absent laptop must not
+          // hold up the transcription of the next one.
+          nextAttemptAt: permanent || !type.retriesForever
+              ? null
+              : DateTime.now().millisecondsSinceEpoch +
+                  (_retryDelayUnit * _uploadBackoffUnits(attempts)).inMilliseconds);
       if (permanent) {
         // Memo stays playable; a retry affordance is offered (§14). Cassette
         // jobs leave no failed memo — their digests stay unfolded and ride
@@ -292,7 +489,10 @@ class JobQueue {
         // never outlives the stage that showed it; the rerun re-asserts it.
         if (type.targetsMemo) await _resetToWaiting(job.targetId);
         // Brief backoff so transient failures don't hot-loop (§6.5).
-        await Future<void>.delayed(_retryDelayUnit * attempts);
+        // Parked stages already carry their delay in `nextAttemptAt`.
+        if (!type.retriesForever) {
+          await Future<void>.delayed(_retryDelayUnit * attempts);
+        }
       }
     }
   }
@@ -413,11 +613,63 @@ class JobQueue {
       return;
     }
     await _memos.updateFilePath(memoId, outPath);
+    // The archival file is what should travel; an upload that deferred to
+    // this encode (or one queued before it) now has its .m4a.
+    await _maybeEnqueueUpload(memoId);
     try {
       File(wavPath).deleteSync();
     } catch (_) {
       // A busy/vanished WAV is orphan-sweep food, not a failure.
     }
+  }
+
+  /// Fork addition — laptop sync. One memo goes up: its manifest (the
+  /// export's own shape, sliced to a single memo) and its audio. Only a 2xx
+  /// stamps `syncedAt`; anything else throws and the job parks for another
+  /// go. Everything here is idempotent on the receiver's side, so a
+  /// re-send after a half-finished upload is safe by construction.
+  Future<void> _uploadMemo(String memoId) async {
+    final sync = _sync;
+    if (sync == null) return; // not wired (older tests)
+    final row = await _memoRow(memoId);
+    if (row == null) return; // deleted meanwhile (§14)
+    final target = SyncTarget.parse((await _settings.get()).syncUrl);
+    if (target == null) return; // sync switched off while queued
+
+    // Still on its WAV capture with the encode right behind us: let the
+    // archival AAC be what travels — the transcode re-enqueues this job.
+    if (row.filePath.endsWith('.wav') && await _hasPendingTranscode(memoId)) {
+      return;
+    }
+
+    final cassetteRow = await (_db.select(_db.cassettes)
+          ..where((c) => c.id.equals(row.cassetteId)))
+        .getSingleOrNull();
+    if (cassetteRow == null) return; // cassette deleted meanwhile (§14)
+
+    final audio = File(row.filePath);
+    // A memo whose audio vanished (metadata-only restore, §8) still syncs:
+    // the transcript is the part a bug report is made of.
+    final present = audio.existsSync();
+    final dot = row.filePath.lastIndexOf('.');
+    final ext = dot > row.filePath.lastIndexOf('/')
+        ? row.filePath.substring(dot)
+        : '.m4a';
+
+    await sync().uploadMemo(
+      target,
+      manifest: buildMemoPayload(
+        cassette: cassetteFromRow(cassetteRow),
+        memo: memoFromRow(row),
+        labels: _exportLabels(),
+        audioExtension: ext,
+        audioBytes: present ? await audio.length() : null,
+        audioSha256: present ? await fileSha256(audio) : null,
+      ),
+      audio: present ? audio : null,
+      audioFieldName: '${row.id}$ext',
+    );
+    await _memos.markSynced(memoId, DateTime.now());
   }
 
   Future<void> _transcribe(String memoId) async {
@@ -448,12 +700,14 @@ class JobQueue {
         // Empty/near-silent memo: kept playable, summary skipped (§14, §6.7)
         // — nothing left to enrich.
         await _memos.setTranscript(memoId, transcript, MemoStatus.ready);
+        await _maybeEnqueueUpload(memoId);
       } else if (!_wantsGist(transcript)) {
         // Short transcript (§6.7): it is its own summary — the memo is done
         // without ever touching the LLM; only the overview job (which reads
         // the transcript directly) waits on the summarization gate.
         await _memos.setTranscript(memoId, transcript, MemoStatus.ready);
         await _enqueueCassetteUpdate(row.cassetteId);
+        await _maybeEnqueueUpload(memoId);
       } else {
         await _memos.setTranscript(memoId, transcript, MemoStatus.transcribed);
         // The gist job waits in the queue while its model is missing or
@@ -486,6 +740,7 @@ class JobQueue {
       // Nothing to summarize (§6.7) — reachable via retryEnrichment on a
       // silent memo; complete the enrichment instead of prompting the LLM.
       await _memos.setMemoSummary(memoId, null, MemoStatus.ready);
+      await _maybeEnqueueUpload(memoId);
       return;
     }
     if (!_wantsGist(transcript)) {
@@ -494,6 +749,7 @@ class JobQueue {
       // reads the transcript directly.
       await _memos.setMemoSummary(memoId, null, MemoStatus.ready);
       await _enqueueCassetteUpdate(row.cassetteId);
+      await _maybeEnqueueUpload(memoId);
       return;
     }
     await _memos.updateStatus(memoId, MemoStatus.summarizing);
@@ -514,6 +770,9 @@ class JobQueue {
     await _memos.setMemoSummary(
         memoId, summary.isEmpty ? null : summary, MemoStatus.ready);
     await _enqueueCassetteUpdate(row.cassetteId);
+    // The memo is final now — gist included — so this is where it earns its
+    // trip to the laptop.
+    await _maybeEnqueueUpload(memoId);
   }
 
   /// §6.7: short transcripts are their own summary — no gist.
@@ -634,9 +893,16 @@ class JobQueue {
             createdAt: DateTime.now().millisecondsSinceEpoch,
           ));
 
-  Future<void> _setJob(String id, String status, {int? attempts}) =>
+  Future<void> _setJob(String id, String status,
+          {int? attempts, int? nextAttemptAt}) =>
       (_db.update(_db.jobs)..where((j) => j.id.equals(id))).write(JobsCompanion(
         status: Value(status),
         attempts: attempts == null ? const Value.absent() : Value(attempts),
+        nextAttemptAt: Value(nextAttemptAt),
       ));
+
+  /// 30 s, 60 s, 90 s … capped at a quarter of an hour (in units of
+  /// [_retryDelayUnit], which tests set to zero).
+  static int _uploadBackoffUnits(int attempts) =>
+      attempts * 30 < 900 ? attempts * 30 : 900;
 }

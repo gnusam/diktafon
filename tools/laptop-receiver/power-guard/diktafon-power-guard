@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Runs the receiver stack only while the laptop is on mains power.
+#
+# On battery the tunnel closes and the phone simply keeps its memos queued
+# (the app treats an unreachable laptop as a wait, not a failure), so the
+# only cost of stopping is a delay — against a container, a tunnel and a
+# radio kept alive on battery for nothing.
+#
+# Idempotent on purpose: it is called by a timer, by udev, and by hand.
+set -euo pipefail
+
+STACK_DIR="${DIKTAFON_STACK_DIR:-$HOME/dev/perso/diktafon-sam/tools/laptop-receiver}"
+COMPOSE=(docker compose --project-directory "$STACK_DIR" -f "$STACK_DIR/docker-compose.yml")
+
+on_mains() {
+  local type_file online
+  for type_file in /sys/class/power_supply/*/type; do
+    [ -r "$type_file" ] || continue
+    [ "$(cat "$type_file")" = "Mains" ] || continue
+    online="${type_file%/type}/online"
+    [ -r "$online" ] || continue
+    [ "$(cat "$online")" = "1" ] && return 0
+  done
+  return 1
+}
+
+running() {
+  [ -n "$("${COMPOSE[@]}" ps --status running --quiet 2>/dev/null)" ]
+}
+
+case "${1:-auto}" in
+  start) want=1 ;;
+  stop)  want=0 ;;
+  *)     on_mains && want=1 || want=0 ;;
+esac
+
+if [ "$want" = 1 ]; then
+  if running; then
+    exit 0
+  fi
+  echo "diktafon: on mains — starting receiver + tunnel"
+  "${COMPOSE[@]}" up -d
+else
+  if ! running; then
+    exit 0
+  fi
+  echo "diktafon: on battery — stopping receiver + tunnel"
+  "${COMPOSE[@]}" down
+fi

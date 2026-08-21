@@ -654,6 +654,17 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, MemoRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<int> syncedAt = GeneratedColumn<int>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -667,6 +678,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, MemoRow> {
     memoSummary,
     foldedAt,
     status,
+    syncedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -764,6 +776,12 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, MemoRow> {
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -817,6 +835,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, MemoRow> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}synced_at'],
+      ),
     );
   }
 
@@ -835,12 +857,12 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
   final String? detectedLang;
 
   /// Transcript stored as a JSON blob per memo (§7.2 — no search in v1).
-  /// After LLM cleanup (§6.8) this is the *cleaned* transcript.
   final String? transcript;
 
-  /// The engine's original transcript, kept when cleanup (§6.8) rewrote
-  /// [transcript] — cleanup is lossy about word timings, so the raw take
-  /// stays recoverable. Null → transcript untouched.
+  /// Legacy LLM-cleanup bookkeeping (§6.8, retired 2026-07-13): the
+  /// engine's original take from when cleanup rewrote [transcript]. No
+  /// longer written — kept, like [foldedAt], so existing databases need no
+  /// migration.
   final String? rawTranscript;
   final String? memoSummary;
 
@@ -849,6 +871,10 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
   /// existing databases need no migration.
   final int? foldedAt;
   final String status;
+
+  /// Fork addition (sync, M4): when the laptop receiver last acknowledged
+  /// this memo. Null → never sent — which is what the upload job looks for.
+  final int? syncedAt;
   const MemoRow({
     required this.id,
     required this.cassetteId,
@@ -861,6 +887,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
     this.memoSummary,
     this.foldedAt,
     required this.status,
+    this.syncedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -886,6 +913,9 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
       map['folded_at'] = Variable<int>(foldedAt);
     }
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<int>(syncedAt);
+    }
     return map;
   }
 
@@ -912,6 +942,9 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
           ? const Value.absent()
           : Value(foldedAt),
       status: Value(status),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
     );
   }
 
@@ -932,6 +965,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
       memoSummary: serializer.fromJson<String?>(json['memoSummary']),
       foldedAt: serializer.fromJson<int?>(json['foldedAt']),
       status: serializer.fromJson<String>(json['status']),
+      syncedAt: serializer.fromJson<int?>(json['syncedAt']),
     );
   }
   @override
@@ -949,6 +983,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
       'memoSummary': serializer.toJson<String?>(memoSummary),
       'foldedAt': serializer.toJson<int?>(foldedAt),
       'status': serializer.toJson<String>(status),
+      'syncedAt': serializer.toJson<int?>(syncedAt),
     };
   }
 
@@ -964,6 +999,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
     Value<String?> memoSummary = const Value.absent(),
     Value<int?> foldedAt = const Value.absent(),
     String? status,
+    Value<int?> syncedAt = const Value.absent(),
   }) => MemoRow(
     id: id ?? this.id,
     cassetteId: cassetteId ?? this.cassetteId,
@@ -978,6 +1014,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
     memoSummary: memoSummary.present ? memoSummary.value : this.memoSummary,
     foldedAt: foldedAt.present ? foldedAt.value : this.foldedAt,
     status: status ?? this.status,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
   );
   MemoRow copyWithCompanion(MemosCompanion data) {
     return MemoRow(
@@ -1004,6 +1041,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
           : this.memoSummary,
       foldedAt: data.foldedAt.present ? data.foldedAt.value : this.foldedAt,
       status: data.status.present ? data.status.value : this.status,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
   }
 
@@ -1020,7 +1058,8 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
           ..write('rawTranscript: $rawTranscript, ')
           ..write('memoSummary: $memoSummary, ')
           ..write('foldedAt: $foldedAt, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
   }
@@ -1038,6 +1077,7 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
     memoSummary,
     foldedAt,
     status,
+    syncedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -1053,7 +1093,8 @@ class MemoRow extends DataClass implements Insertable<MemoRow> {
           other.rawTranscript == this.rawTranscript &&
           other.memoSummary == this.memoSummary &&
           other.foldedAt == this.foldedAt &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.syncedAt == this.syncedAt);
 }
 
 class MemosCompanion extends UpdateCompanion<MemoRow> {
@@ -1068,6 +1109,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
   final Value<String?> memoSummary;
   final Value<int?> foldedAt;
   final Value<String> status;
+  final Value<int?> syncedAt;
   final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
@@ -1081,6 +1123,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
     this.memoSummary = const Value.absent(),
     this.foldedAt = const Value.absent(),
     this.status = const Value.absent(),
+    this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MemosCompanion.insert({
@@ -1095,6 +1138,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
     this.memoSummary = const Value.absent(),
     this.foldedAt = const Value.absent(),
     required String status,
+    this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        cassetteId = Value(cassetteId),
@@ -1114,6 +1158,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
     Expression<String>? memoSummary,
     Expression<int>? foldedAt,
     Expression<String>? status,
+    Expression<int>? syncedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1128,6 +1173,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
       if (memoSummary != null) 'memo_summary': memoSummary,
       if (foldedAt != null) 'folded_at': foldedAt,
       if (status != null) 'status': status,
+      if (syncedAt != null) 'synced_at': syncedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1144,6 +1190,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
     Value<String?>? memoSummary,
     Value<int?>? foldedAt,
     Value<String>? status,
+    Value<int?>? syncedAt,
     Value<int>? rowid,
   }) {
     return MemosCompanion(
@@ -1158,6 +1205,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
       memoSummary: memoSummary ?? this.memoSummary,
       foldedAt: foldedAt ?? this.foldedAt,
       status: status ?? this.status,
+      syncedAt: syncedAt ?? this.syncedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1198,6 +1246,9 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<int>(syncedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1218,6 +1269,7 @@ class MemosCompanion extends UpdateCompanion<MemoRow> {
           ..write('memoSummary: $memoSummary, ')
           ..write('foldedAt: $foldedAt, ')
           ..write('status: $status, ')
+          ..write('syncedAt: $syncedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1290,6 +1342,17 @@ class $JobsTable extends Jobs with TableInfo<$JobsTable, JobRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta(
+    'nextAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<int> nextAttemptAt = GeneratedColumn<int>(
+    'next_attempt_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1298,6 +1361,7 @@ class $JobsTable extends Jobs with TableInfo<$JobsTable, JobRow> {
     status,
     attempts,
     createdAt,
+    nextAttemptAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1354,6 +1418,15 @@ class $JobsTable extends Jobs with TableInfo<$JobsTable, JobRow> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('next_attempt_at')) {
+      context.handle(
+        _nextAttemptAtMeta,
+        nextAttemptAt.isAcceptableOrUnknown(
+          data['next_attempt_at']!,
+          _nextAttemptAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1387,6 +1460,10 @@ class $JobsTable extends Jobs with TableInfo<$JobsTable, JobRow> {
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      nextAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}next_attempt_at'],
+      ),
     );
   }
 
@@ -1403,6 +1480,12 @@ class JobRow extends DataClass implements Insertable<JobRow> {
   final String status;
   final int attempts;
   final int createdAt;
+
+  /// Fork addition (sync, M4): earliest epoch ms this job may run again;
+  /// null means "now". The drain is sequential, so a job that wants to back
+  /// off for minutes (an upload with no laptop listening) parks its next
+  /// slot here instead of sleeping in the loop and holding up transcription.
+  final int? nextAttemptAt;
   const JobRow({
     required this.id,
     required this.type,
@@ -1410,6 +1493,7 @@ class JobRow extends DataClass implements Insertable<JobRow> {
     required this.status,
     required this.attempts,
     required this.createdAt,
+    this.nextAttemptAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1420,6 +1504,9 @@ class JobRow extends DataClass implements Insertable<JobRow> {
     map['status'] = Variable<String>(status);
     map['attempts'] = Variable<int>(attempts);
     map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || nextAttemptAt != null) {
+      map['next_attempt_at'] = Variable<int>(nextAttemptAt);
+    }
     return map;
   }
 
@@ -1431,6 +1518,9 @@ class JobRow extends DataClass implements Insertable<JobRow> {
       status: Value(status),
       attempts: Value(attempts),
       createdAt: Value(createdAt),
+      nextAttemptAt: nextAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextAttemptAt),
     );
   }
 
@@ -1446,6 +1536,7 @@ class JobRow extends DataClass implements Insertable<JobRow> {
       status: serializer.fromJson<String>(json['status']),
       attempts: serializer.fromJson<int>(json['attempts']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      nextAttemptAt: serializer.fromJson<int?>(json['nextAttemptAt']),
     );
   }
   @override
@@ -1458,6 +1549,7 @@ class JobRow extends DataClass implements Insertable<JobRow> {
       'status': serializer.toJson<String>(status),
       'attempts': serializer.toJson<int>(attempts),
       'createdAt': serializer.toJson<int>(createdAt),
+      'nextAttemptAt': serializer.toJson<int?>(nextAttemptAt),
     };
   }
 
@@ -1468,6 +1560,7 @@ class JobRow extends DataClass implements Insertable<JobRow> {
     String? status,
     int? attempts,
     int? createdAt,
+    Value<int?> nextAttemptAt = const Value.absent(),
   }) => JobRow(
     id: id ?? this.id,
     type: type ?? this.type,
@@ -1475,6 +1568,9 @@ class JobRow extends DataClass implements Insertable<JobRow> {
     status: status ?? this.status,
     attempts: attempts ?? this.attempts,
     createdAt: createdAt ?? this.createdAt,
+    nextAttemptAt: nextAttemptAt.present
+        ? nextAttemptAt.value
+        : this.nextAttemptAt,
   );
   JobRow copyWithCompanion(JobsCompanion data) {
     return JobRow(
@@ -1484,6 +1580,9 @@ class JobRow extends DataClass implements Insertable<JobRow> {
       status: data.status.present ? data.status.value : this.status,
       attempts: data.attempts.present ? data.attempts.value : this.attempts,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      nextAttemptAt: data.nextAttemptAt.present
+          ? data.nextAttemptAt.value
+          : this.nextAttemptAt,
     );
   }
 
@@ -1495,14 +1594,22 @@ class JobRow extends DataClass implements Insertable<JobRow> {
           ..write('targetId: $targetId, ')
           ..write('status: $status, ')
           ..write('attempts: $attempts, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('nextAttemptAt: $nextAttemptAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, targetId, status, attempts, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    targetId,
+    status,
+    attempts,
+    createdAt,
+    nextAttemptAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1512,7 +1619,8 @@ class JobRow extends DataClass implements Insertable<JobRow> {
           other.targetId == this.targetId &&
           other.status == this.status &&
           other.attempts == this.attempts &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.nextAttemptAt == this.nextAttemptAt);
 }
 
 class JobsCompanion extends UpdateCompanion<JobRow> {
@@ -1522,6 +1630,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
   final Value<String> status;
   final Value<int> attempts;
   final Value<int> createdAt;
+  final Value<int?> nextAttemptAt;
   final Value<int> rowid;
   const JobsCompanion({
     this.id = const Value.absent(),
@@ -1530,6 +1639,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
     this.status = const Value.absent(),
     this.attempts = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   JobsCompanion.insert({
@@ -1539,6 +1649,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
     required String status,
     this.attempts = const Value.absent(),
     required int createdAt,
+    this.nextAttemptAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -1552,6 +1663,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
     Expression<String>? status,
     Expression<int>? attempts,
     Expression<int>? createdAt,
+    Expression<int>? nextAttemptAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1561,6 +1673,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
       if (status != null) 'status': status,
       if (attempts != null) 'attempts': attempts,
       if (createdAt != null) 'created_at': createdAt,
+      if (nextAttemptAt != null) 'next_attempt_at': nextAttemptAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1572,6 +1685,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
     Value<String>? status,
     Value<int>? attempts,
     Value<int>? createdAt,
+    Value<int?>? nextAttemptAt,
     Value<int>? rowid,
   }) {
     return JobsCompanion(
@@ -1581,6 +1695,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
       status: status ?? this.status,
       attempts: attempts ?? this.attempts,
       createdAt: createdAt ?? this.createdAt,
+      nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1606,6 +1721,9 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (nextAttemptAt.present) {
+      map['next_attempt_at'] = Variable<int>(nextAttemptAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1621,6 +1739,7 @@ class JobsCompanion extends UpdateCompanion<JobRow> {
           ..write('status: $status, ')
           ..write('attempts: $attempts, ')
           ..write('createdAt: $createdAt, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2238,6 +2357,7 @@ typedef $$MemosTableCreateCompanionBuilder =
       Value<String?> memoSummary,
       Value<int?> foldedAt,
       required String status,
+      Value<int?> syncedAt,
       Value<int> rowid,
     });
 typedef $$MemosTableUpdateCompanionBuilder =
@@ -2253,6 +2373,7 @@ typedef $$MemosTableUpdateCompanionBuilder =
       Value<String?> memoSummary,
       Value<int?> foldedAt,
       Value<String> status,
+      Value<int?> syncedAt,
       Value<int> rowid,
     });
 
@@ -2333,6 +2454,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2419,6 +2545,11 @@ class $$MemosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CassettesTableOrderingComposer get cassetteId {
     final $$CassettesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2492,6 +2623,9 @@ class $$MemosTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<int> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
   $$CassettesTableAnnotationComposer get cassetteId {
     final $$CassettesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -2555,6 +2689,7 @@ class $$MemosTableTableManager
                 Value<String?> memoSummary = const Value.absent(),
                 Value<int?> foldedAt = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int?> syncedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
@@ -2568,6 +2703,7 @@ class $$MemosTableTableManager
                 memoSummary: memoSummary,
                 foldedAt: foldedAt,
                 status: status,
+                syncedAt: syncedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2583,6 +2719,7 @@ class $$MemosTableTableManager
                 Value<String?> memoSummary = const Value.absent(),
                 Value<int?> foldedAt = const Value.absent(),
                 required String status,
+                Value<int?> syncedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
@@ -2596,6 +2733,7 @@ class $$MemosTableTableManager
                 memoSummary: memoSummary,
                 foldedAt: foldedAt,
                 status: status,
+                syncedAt: syncedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2671,6 +2809,7 @@ typedef $$JobsTableCreateCompanionBuilder =
       required String status,
       Value<int> attempts,
       required int createdAt,
+      Value<int?> nextAttemptAt,
       Value<int> rowid,
     });
 typedef $$JobsTableUpdateCompanionBuilder =
@@ -2681,6 +2820,7 @@ typedef $$JobsTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int> attempts,
       Value<int> createdAt,
+      Value<int?> nextAttemptAt,
       Value<int> rowid,
     });
 
@@ -2719,6 +2859,11 @@ class $$JobsTableFilterComposer extends Composer<_$AppDatabase, $JobsTable> {
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2760,6 +2905,11 @@ class $$JobsTableOrderingComposer extends Composer<_$AppDatabase, $JobsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$JobsTableAnnotationComposer
@@ -2788,6 +2938,11 @@ class $$JobsTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => column,
+  );
 }
 
 class $$JobsTableTableManager
@@ -2824,6 +2979,7 @@ class $$JobsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int?> nextAttemptAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => JobsCompanion(
                 id: id,
@@ -2832,6 +2988,7 @@ class $$JobsTableTableManager
                 status: status,
                 attempts: attempts,
                 createdAt: createdAt,
+                nextAttemptAt: nextAttemptAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2842,6 +2999,7 @@ class $$JobsTableTableManager
                 required String status,
                 Value<int> attempts = const Value.absent(),
                 required int createdAt,
+                Value<int?> nextAttemptAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => JobsCompanion.insert(
                 id: id,
@@ -2850,6 +3008,7 @@ class $$JobsTableTableManager
                 status: status,
                 attempts: attempts,
                 createdAt: createdAt,
+                nextAttemptAt: nextAttemptAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

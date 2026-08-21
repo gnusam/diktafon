@@ -109,6 +109,19 @@ class MemoRepository {
         ),
       );
 
+  /// Laptop sync (fork): the receiver acknowledged this memo. Stamped only
+  /// after a 2xx, so a crash mid-upload simply re-sends — the receiver is
+  /// idempotent by memo id.
+  Future<void> markSynced(String id, DateTime at) =>
+      (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
+          MemosCompanion(syncedAt: Value(at.millisecondsSinceEpoch)));
+
+  /// Drops the acknowledgement so the memo is picked up again — used when
+  /// its content changed after being sent (edited transcript, late gist).
+  Future<void> clearSynced(String id) =>
+      (_db.update(_db.memos)..where((m) => m.id.equals(id)))
+          .write(const MemosCompanion(syncedAt: Value(null)));
+
   Future<void> delete(String id) =>
       (_db.delete(_db.memos)..where((m) => m.id.equals(id))).go();
 

@@ -10,6 +10,8 @@ class AppSettings {
     this.summariesEnabled = true,
     this.theme = 'system',
     this.firstRunDone = false,
+    this.syncUrl,
+    this.syncAuto = false,
   });
 
   /// Null → auto-detect per memo (D8), so one tape may mix languages; set →
@@ -26,6 +28,18 @@ class AppSettings {
   /// The first-run setup (§5.6) has been walked through (or skipped).
   final bool firstRunDone;
 
+  /// Fork addition — laptop sync. The one string the user pastes from the
+  /// receiver: `https://[user:pass@]host[/base][#token]`. Null (or blank)
+  /// → the feature is entirely off and no upload job is ever created.
+  final String? syncUrl;
+
+  /// Send every memo as soon as it is enriched. Off → memos only leave on
+  /// an explicit "send" (cassette menu, or the pending row in Settings).
+  final bool syncAuto;
+
+  /// Sync is wired at all — the drain gate and every enqueue check this.
+  bool get syncConfigured => (syncUrl ?? '').trim().isNotEmpty;
+
   static AppSettings fromRows(Map<String, String> rows) => AppSettings(
         appLanguage: rows['appLanguage'],
         chimeEnabled: rows['chimeEnabled'] != '0',
@@ -36,6 +50,8 @@ class AppSettings {
         // (§6.8 retired 2026-07-13); it is simply ignored.
         theme: rows['theme'] ?? 'system',
         firstRunDone: rows['firstRunDone'] == '1',
+        syncUrl: rows['syncUrl'],
+        syncAuto: rows['syncAuto'] == '1',
       );
 }
 
@@ -73,4 +89,11 @@ class SettingsRepository {
       _set('summariesEnabled', on ? '1' : '0');
   Future<void> setTheme(String theme) => _set('theme', theme);
   Future<void> setFirstRunDone() => _set('firstRunDone', '1');
+
+  /// Blank clears the row: an empty string would read back as "configured"
+  /// and keep the upload gate open on a target that cannot exist.
+  Future<void> setSyncUrl(String? url) =>
+      _set('syncUrl', (url ?? '').trim().isEmpty ? null : url!.trim());
+
+  Future<void> setSyncAuto(bool on) => _set('syncAuto', on ? '1' : '0');
 }

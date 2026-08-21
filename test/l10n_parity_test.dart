@@ -24,13 +24,46 @@ void main() {
       .where((f) => f.path.endsWith('.arb'))
       .toList();
 
+  /// Fork-only strings (laptop sync). This fork is used in French and
+  /// English; shipping machine translations into the other nineteen locales
+  /// would claim a quality they would not have, and gen-l10n falls back to
+  /// the template wording anyway. The exception is an explicit list, not a
+  /// prefix rule: a new fork key that is not named here still has to be
+  /// translated everywhere, exactly like an upstream one.
+  const forkOnly = {
+    'groupSync',
+    'syncTarget',
+    'syncTargetUnset',
+    'syncTargetTitle',
+    'syncTargetHint',
+    'syncTargetInvalid',
+    'syncTest',
+    'syncTesting',
+    'syncTestOk',
+    'syncTestFailed',
+    'syncAuto',
+    'syncAutoDesc',
+    'syncPendingRow',
+    'syncPendingNone',
+    'syncPending',
+    'syncSendNow',
+    'syncQueued',
+    'syncSendCassette',
+  };
+
   test('every locale ARB carries every template message', () {
-    final template = keysOf(File('lib/l10n/app_en.arb'));
+    final template = keysOf(File('lib/l10n/app_en.arb')).difference(forkOnly);
     final arbs = arbFiles();
     expect(arbs.length, greaterThanOrEqualTo(14),
         reason: 'en fr es pt de pl cs tr ru ko + wave 2 (§13)');
     for (final arb in arbs) {
-      expect(keysOf(arb), template, reason: arb.path);
+      expect(keysOf(arb).difference(forkOnly), template, reason: arb.path);
+    }
+  });
+
+  test('the two locales this fork is used in carry its own strings', () {
+    for (final path in ['lib/l10n/app_en.arb', 'lib/l10n/app_fr.arb']) {
+      expect(keysOf(File(path)), containsAll(forkOnly), reason: path);
     }
   });
 

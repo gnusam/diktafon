@@ -619,6 +619,73 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get groupSync => 'Laptop sync';
+
+  @override
+  String get syncTarget => 'Laptop address';
+
+  @override
+  String get syncTargetUnset => 'Not set up';
+
+  @override
+  String get syncTargetTitle => 'LAPTOP ADDRESS';
+
+  @override
+  String get syncTargetHint =>
+      'Paste the address your receiver printed. Leave it empty to stop sending anything.';
+
+  @override
+  String get syncTargetInvalid => 'That is not an address this can send to.';
+
+  @override
+  String get syncTest => 'TEST';
+
+  @override
+  String get syncTesting => 'TESTING…';
+
+  @override
+  String syncTestOk(String host) {
+    return '$host answered.';
+  }
+
+  @override
+  String syncTestFailed(String error) {
+    return 'No answer: $error';
+  }
+
+  @override
+  String get syncAuto => 'Send automatically';
+
+  @override
+  String get syncAutoDesc => 'Each memo leaves as soon as it is written up';
+
+  @override
+  String get syncPendingRow => 'Waiting to be sent';
+
+  @override
+  String get syncPendingNone => 'Everything is on the laptop';
+
+  @override
+  String syncPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count memos waiting',
+      one: '1 memo waiting',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncSendNow => 'SEND';
+
+  @override
+  String get syncQueued => 'Queued for the laptop.';
+
+  @override
+  String get syncSendCassette => 'Send to laptop';
+
+  @override
   String get notifRecording => 'Đang thu âm';
 
   @override
