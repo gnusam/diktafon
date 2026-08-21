@@ -202,6 +202,20 @@ def main() -> int:
         check("no memo was added by the re-send",
               len(list((dest / ".memos").glob("*.json"))), 3)
 
+        # An export already sitting where memos now land (the old manual
+        # route wrote the same file names) must survive first contact.
+        older = work / "projects/old/retex/diktafon/old"
+        older.mkdir(parents=True)
+        (older / "transcript.md").write_text("# old\n\nfrom a manual export\n")
+        (older / "cassette.json").write_text('{"label": "old"}')
+        send(port, "m-old", "2026-08-20T11:00:00.000", "Nouveau mémo.",
+             label="old")
+        check("an existing export is kept, not overwritten",
+              (older / "transcript.md.before-sync").read_text().strip(),
+              "# old\n\nfrom a manual export".strip())
+        check("and the rebuilt transcript is the synced one",
+              "Nouveau mémo." in (older / "transcript.md").read_text(), True)
+
         # ---- what it must refuse ----------------------------------------
         status, body = send(port, "m-9", "2026-08-20T10:00:00.000", "x",
                             b"tampered", sha="0" * 64)

@@ -391,6 +391,18 @@ class Handler(BaseHTTPRequestHandler):
     def _file_memo(self, manifest, memo, memo_id, dest: Path,
                    audio_tmp: Path | None, audio_bytes: int,
                    holder: list[Path]):
+        # First memo into a directory that already holds an export (the old
+        # manual `diktafon-pull` route wrote the same two file names): keep
+        # it. From here on these files are rebuilt from fragments, and a
+        # rebuild only knows about memos that came through the tunnel — it
+        # would quietly drop everything the export had put there.
+        if not (dest / ".memos").exists():
+            for name in ("transcript.md", "cassette.json"):
+                existing = dest / name
+                if existing.exists():
+                    kept = dest / f"{name}.before-sync"
+                    existing.replace(kept)
+                    log(f"  kept the existing {name} as {kept.name}")
         (dest / ".memos").mkdir(parents=True, exist_ok=True)
 
         audio_name = None
