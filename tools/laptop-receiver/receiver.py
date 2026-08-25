@@ -386,6 +386,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
         path, _, query = self.path.partition("?")
         path = path.rstrip("/")
+        if path.endswith("/healthz"):
+            # Liveness probe, no token: frps already gates the tunnel with
+            # basic-auth, and the answer says nothing beyond "process is up".
+            return self._json(200, {"ok": 1})
         if path.endswith("/v1/ping"):
             if not self._authorized():
                 return self._json(403, {"error": "bad token"})

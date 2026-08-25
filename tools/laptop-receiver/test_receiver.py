@@ -183,6 +183,11 @@ def main() -> int:
             print("receiver never came up")
             return 1
 
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/healthz", timeout=1) as response:
+            check("healthz answers without a token",
+                  json.loads(response.read()).get("ok"), 1)
+
         audio_one = b"first-memo-audio" * 4
         status, _ = send(port, "m-0001", "2026-08-20T17:40:04.942",
                          "Le bouton est perturbant.", audio_one,
