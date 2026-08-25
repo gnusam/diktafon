@@ -4,6 +4,9 @@
 serverAddr = "olibrio.fr"
 serverPort = 7001
 transport.protocol = "quic"
+# Au boot/resume le DNS peut ne pas encore répondre : sans ça, frpc sort en
+# erreur au premier échec de login et le tunnel reste mort (→ 404 côté frps).
+loginFailExit = false
 
 auth.method = "token"
 auth.token = "REPLACE_WITH_FRPS_TOKEN"
