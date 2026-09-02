@@ -18,6 +18,7 @@ import 'services/notifications/local_notifications_sink.dart';
 import 'services/providers/llm/llm_model_manager.dart';
 import 'services/providers/model_manager.dart';
 import 'services/providers/whisper/whisper_model_manager.dart';
+import 'services/system/power_state.dart';
 import 'services/system/system_settings.dart';
 
 Future<void> main() async {
@@ -92,6 +93,20 @@ Future<void> main() async {
       await container.read(settingsProvider.future);
     } catch (_) {}
     await container.read(jobQueueProvider).drain();
+  });
+
+  // Fork addition — the battery gate (§ power). This subscription is what
+  // keeps the gauge live for the whole process: the queue reads it per pass
+  // but never subscribes itself. A charger going in releases whatever the
+  // gate was holding, so the backlog moves without the app being opened —
+  // on the *transition* only, never on every percentage tick.
+  var inferenceWasAllowed = true;
+  container.listen<AsyncValue<PowerState>>(powerStateProvider, (_, next) {
+    final allowed = (next.value ?? PowerState.unknown).allowsInference;
+    if (allowed && !inferenceWasAllowed) {
+      unawaited(container.read(jobQueueProvider).drain());
+    }
+    inferenceWasAllowed = allowed;
   });
 
   // A force-close mid-download left a `.part` behind — put it back on the

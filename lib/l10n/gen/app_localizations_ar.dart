@@ -781,4 +781,36 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'المعالجة في الخلفية';
+
+  @override
+  String waitingForPower(int level) {
+    return 'في انتظار الطاقة — يستأنف فوق $level ٪';
+  }
+
+  @override
+  String get powerSaverRow => 'الطاقة';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'يعمل على البطارية فوق $threshold ٪';
+  }
+
+  @override
+  String get powerSaverOnMains => 'موصول بالتيار — لا شيء متوقف';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'متوقف عند $level ٪ — وصّل الشاحن للمتابعة';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'متوقف عند $level ٪ — $count مذكرات تنتظر',
+      one: 'متوقف عند $level ٪ — مذكرة واحدة تنتظر',
+    );
+    return '$_temp0';
+  }
 }

@@ -328,5 +328,44 @@
   "notifRecording": "Recording memo",
   "notifRecordingChannel": "Recording",
   "notifProcessing": "Finishing memos",
-  "notifProcessingChannel": "Background processing"
+  "notifProcessingChannel": "Background processing",
+
+  "waitingForPower": "waiting for power — transcribing again above {level}%",
+  "@waitingForPower": {
+    "description": "Caption on a memo whose transcription the battery gate is holding",
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "powerSaverRow": "Energy",
+  "powerSaverActive": "Runs on battery above {threshold}%",
+  "@powerSaverActive": {
+    "placeholders": {
+      "threshold": {
+        "type": "int"
+      }
+    }
+  },
+  "powerSaverOnMains": "Plugged in — nothing held back",
+  "powerSaverHolding": "Holding at {level}% — plug in to resume",
+  "@powerSaverHolding": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "powerSaverHoldingCount": "{count, plural, =1{Holding at {level}% — 1 memo waiting} other{Holding at {level}% — {count} memos waiting}}",
+  "@powerSaverHoldingCount": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

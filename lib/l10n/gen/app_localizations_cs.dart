@@ -759,4 +759,36 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Zpracování na pozadí';
+
+  @override
+  String waitingForPower(int level) {
+    return 'čeká na energii — přepis pokračuje nad $level %';
+  }
+
+  @override
+  String get powerSaverRow => 'Energie';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Na baterii běží nad $threshold %';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Připojeno k síti — nic nečeká';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'Pozastaveno na $level % — připojte nabíječku';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pozastaveno na $level % — čeká $count záznamů',
+      one: 'Pozastaveno na $level % — čeká 1 záznam',
+    );
+    return '$_temp0';
+  }
 }

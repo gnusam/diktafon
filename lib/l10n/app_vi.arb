@@ -171,5 +171,12 @@
   "notifRecording": "Đang thu âm",
   "notifRecordingChannel": "Thu âm",
   "notifProcessing": "Đang hoàn tất ghi chú",
-  "notifProcessingChannel": "Xử lý nền"
+  "notifProcessingChannel": "Xử lý nền",
+
+  "waitingForPower": "đang chờ nguồn — tiếp tục khi trên {level} %",
+  "powerSaverRow": "Năng lượng",
+  "powerSaverActive": "Chạy bằng pin khi trên {threshold} %",
+  "powerSaverOnMains": "Đang cắm sạc — không có gì bị giữ lại",
+  "powerSaverHolding": "Tạm dừng ở {level} % — cắm sạc để tiếp tục",
+  "powerSaverHoldingCount": "{count, plural, other{Tạm dừng ở {level} % — {count} ghi chú đang chờ}}"
 }

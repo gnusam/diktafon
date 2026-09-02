@@ -171,5 +171,12 @@
   "notifRecording": "Registrazione in corso",
   "notifRecordingChannel": "Registrazione",
   "notifProcessing": "Completamento dei memo",
-  "notifProcessingChannel": "Elaborazione in background"
+  "notifProcessingChannel": "Elaborazione in background",
+
+  "waitingForPower": "in attesa di energia — riprende sopra il {level} %",
+  "powerSaverRow": "Energia",
+  "powerSaverActive": "A batteria funziona sopra il {threshold} %",
+  "powerSaverOnMains": "Alimentato — nulla è in attesa",
+  "powerSaverHolding": "In pausa al {level} % — collega il caricabatterie",
+  "powerSaverHoldingCount": "{count, plural, =1{In pausa al {level} % — 1 memo in attesa} other{In pausa al {level} % — {count} memo in attesa}}"
 }

@@ -171,5 +171,12 @@
   "notifRecording": "Probíhá nahrávání",
   "notifRecordingChannel": "Nahrávání",
   "notifProcessing": "Dokončování poznámek",
-  "notifProcessingChannel": "Zpracování na pozadí"
+  "notifProcessingChannel": "Zpracování na pozadí",
+
+  "waitingForPower": "čeká na energii — přepis pokračuje nad {level} %",
+  "powerSaverRow": "Energie",
+  "powerSaverActive": "Na baterii běží nad {threshold} %",
+  "powerSaverOnMains": "Připojeno k síti — nic nečeká",
+  "powerSaverHolding": "Pozastaveno na {level} % — připojte nabíječku",
+  "powerSaverHoldingCount": "{count, plural, =1{Pozastaveno na {level} % — čeká 1 záznam} other{Pozastaveno na {level} % — čeká {count} záznamů}}"
 }

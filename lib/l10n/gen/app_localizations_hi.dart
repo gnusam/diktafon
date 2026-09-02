@@ -745,4 +745,36 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'पृष्ठभूमि प्रसंस्करण';
+
+  @override
+  String waitingForPower(int level) {
+    return 'ऊर्जा की प्रतीक्षा — $level % से ऊपर फिर शुरू';
+  }
+
+  @override
+  String get powerSaverRow => 'ऊर्जा';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'बैटरी पर $threshold % से ऊपर चलता है';
+  }
+
+  @override
+  String get powerSaverOnMains => 'चार्जर लगा है — कुछ भी रुका नहीं';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '$level % पर रुका — जारी रखने के लिए चार्जर लगाएँ';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$level % पर रुका — $count मेमो प्रतीक्षा में',
+      one: '$level % पर रुका — 1 मेमो प्रतीक्षा में',
+    );
+    return '$_temp0';
+  }
 }

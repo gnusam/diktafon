@@ -123,6 +123,38 @@ the OS not to freeze the process, it does not stop the OEM killing it.
 None of this applies to iOS, which suspends the process whatever we ask, or
 to desktop, which never pauses.
 
+## The battery gate
+
+Whisper and the local LLM are the two things here that genuinely cost a
+phone: minutes of pinned CPU, a warm case, a visible dent in the curve.
+**Below 20 % on battery they wait.** A charger overrides it at any level —
+plugged in at 3 %, everything runs.
+
+What is *not* gated, on purpose:
+
+- **The upload.** A finished memo reaching the laptop is a few hundred
+  kilobytes over HTTPS, nothing next to an inference pass. Holding it back
+  on low battery would recreate the exact symptom the section above exists
+  to remove, with a percentage as the trigger instead of a frozen process.
+  A memo enriched yesterday goes today at 3 %.
+- **Recording.** Capturing a thought works at 3 % or it is not a voice
+  recorder.
+- **The WAV→AAC transcode.** Hardware MediaCodec, seconds of work — and it
+  produces the very file the upload carries.
+
+A memo the gate is holding says so, rather than showing the "queued for
+transcription…" it would show for any other wait: *waiting for power —
+transcribing again above 20%*. Settings → Intelligence → **Energy** carries
+the same state, and the count of what is waiting. That honesty is the point:
+after the freeze bug, a memo silent for an hour with no explanation is
+indistinguishable from a broken one.
+
+The gate is re-read on every pass of the drain, so plugging in releases the
+backlog between two jobs — never mid-inference, so no work is thrown away —
+and the phone going on the charger wakes the queue by itself, without the
+app being opened. The threshold is fixed at 20 %; there is nothing to
+configure, and the only lever is a cable.
+
 ## Sending a cassette, and where it goes
 
 Sending is a cassette's own affair — its ⋮ menu, **Send to laptop** — not a

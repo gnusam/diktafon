@@ -717,4 +717,35 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'バックグラウンド処理';
+
+  @override
+  String waitingForPower(int level) {
+    return '電力待ち — $level % を超えると再開します';
+  }
+
+  @override
+  String get powerSaverRow => '電力';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'バッテリー駆動では $threshold % 以上で実行';
+  }
+
+  @override
+  String get powerSaverOnMains => '電源接続中 — 保留中のものはありません';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '$level % で一時停止 — 充電すると再開します';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$level % で一時停止 — $count 件のメモが待機中',
+    );
+    return '$_temp0';
+  }
 }

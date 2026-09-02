@@ -171,5 +171,12 @@
   "notifRecording": "Идёт запись",
   "notifRecordingChannel": "Запись",
   "notifProcessing": "Завершение заметок",
-  "notifProcessingChannel": "Фоновая обработка"
+  "notifProcessingChannel": "Фоновая обработка",
+
+  "waitingForPower": "ожидает питания — продолжится выше {level} %",
+  "powerSaverRow": "Энергия",
+  "powerSaverActive": "От батареи работает выше {threshold} %",
+  "powerSaverOnMains": "Подключено к сети — ничто не ждёт",
+  "powerSaverHolding": "Пауза на {level} % — подключите зарядку",
+  "powerSaverHoldingCount": "{count, plural, =1{Пауза на {level} % — ждёт 1 заметка} other{Пауза на {level} % — ждут {count} заметок}}"
 }

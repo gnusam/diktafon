@@ -171,5 +171,12 @@
   "notifRecording": "Sedang merekam",
   "notifRecordingChannel": "Perekaman",
   "notifProcessing": "Menyelesaikan memo",
-  "notifProcessingChannel": "Pemrosesan latar belakang"
+  "notifProcessingChannel": "Pemrosesan latar belakang",
+
+  "waitingForPower": "menunggu daya — dilanjutkan di atas {level} %",
+  "powerSaverRow": "Energi",
+  "powerSaverActive": "Berjalan dengan baterai di atas {threshold} %",
+  "powerSaverOnMains": "Terhubung ke daya — tidak ada yang ditahan",
+  "powerSaverHolding": "Dijeda pada {level} % — hubungkan pengisi daya",
+  "powerSaverHoldingCount": "{count, plural, other{Dijeda pada {level} % — {count} memo menunggu}}"
 }

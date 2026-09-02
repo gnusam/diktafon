@@ -745,4 +745,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'پردازش در پس‌زمینه';
+
+  @override
+  String waitingForPower(int level) {
+    return 'در انتظار انرژی — بالای $level ٪ ادامه می‌یابد';
+  }
+
+  @override
+  String get powerSaverRow => 'انرژی';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'با باتری بالای $threshold ٪ اجرا می‌شود';
+  }
+
+  @override
+  String get powerSaverOnMains => 'به برق وصل است — چیزی متوقف نیست';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'متوقف در $level ٪ — شارژر را وصل کنید';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'متوقف در $level ٪ — $count یادداشت در انتظار',
+      one: 'متوقف در $level ٪ — ۱ یادداشت در انتظار',
+    );
+    return '$_temp0';
+  }
 }

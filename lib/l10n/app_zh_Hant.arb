@@ -171,5 +171,12 @@
   "notifRecording": "正在錄音",
   "notifRecordingChannel": "錄音",
   "notifProcessing": "正在處理備忘",
-  "notifProcessingChannel": "背景處理"
+  "notifProcessingChannel": "背景處理",
+
+  "waitingForPower": "正在等待電量 — 高於 {level} % 後繼續",
+  "powerSaverRow": "電量",
+  "powerSaverActive": "使用電池時高於 {threshold} % 才執行",
+  "powerSaverOnMains": "已接上電源 — 沒有任何等待",
+  "powerSaverHolding": "在 {level} % 暫停 — 接上充電器即可繼續",
+  "powerSaverHoldingCount": "{count, plural, other{在 {level} % 暫停 — {count} 則備忘等待中}}"
 }

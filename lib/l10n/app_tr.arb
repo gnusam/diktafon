@@ -171,5 +171,12 @@
   "notifRecording": "Kayıt yapılıyor",
   "notifRecordingChannel": "Kayıt",
   "notifProcessing": "Notlar tamamlanıyor",
-  "notifProcessingChannel": "Arka planda işleme"
+  "notifProcessingChannel": "Arka planda işleme",
+
+  "waitingForPower": "güç bekleniyor — %{level} üzerinde devam eder",
+  "powerSaverRow": "Enerji",
+  "powerSaverActive": "Pilde %{threshold} üzerinde çalışır",
+  "powerSaverOnMains": "Fişe takılı — hiçbir şey bekletilmiyor",
+  "powerSaverHolding": "%{level} seviyesinde duraklatıldı — şarja takın",
+  "powerSaverHoldingCount": "{count, plural, =1{%{level} seviyesinde duraklatıldı — 1 not bekliyor} other{%{level} seviyesinde duraklatıldı — {count} not bekliyor}}"
 }

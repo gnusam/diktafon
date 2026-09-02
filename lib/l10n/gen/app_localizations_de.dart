@@ -751,4 +751,36 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Hintergrundverarbeitung';
+
+  @override
+  String waitingForPower(int level) {
+    return 'wartet auf Energie — Transkription ab $level %';
+  }
+
+  @override
+  String get powerSaverRow => 'Energie';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Läuft im Akkubetrieb über $threshold %';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Am Netz — nichts wird zurückgehalten';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'Pausiert bei $level % — zum Fortsetzen anschließen';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pausiert bei $level % — $count Notizen warten',
+      one: 'Pausiert bei $level % — 1 Notiz wartet',
+    );
+    return '$_temp0';
+  }
 }

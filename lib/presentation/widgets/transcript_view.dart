@@ -29,6 +29,7 @@ class TranscriptView extends StatefulWidget {
     required this.playing,
     this.seekCount = 0,
     this.modelReady = false,
+    this.powerHold,
     this.showSyncMarks = false,
     this.onSeekGlobalMs,
     this.onRetryMemo,
@@ -56,6 +57,12 @@ class TranscriptView extends StatefulWidget {
   /// Whether the transcription model is provisioned — decides what a
   /// still-untranscribed memo says while it waits (§14).
   final bool modelReady;
+
+  /// Fork addition — the battery level the inference gate is holding at,
+  /// null when it is open. A memo parked by a flat battery must say so:
+  /// "queued for transcription…" for an hour is indistinguishable from the
+  /// freeze bug the keep-alive fixed.
+  final int? powerHold;
   final ValueChanged<int>? onSeekGlobalMs;
 
   /// Failed memo tapped → re-enqueue (§14 retry affordance).
@@ -276,12 +283,16 @@ class _TranscriptViewState extends State<TranscriptView> {
               : () => widget.onRetryMemo!(memo.id),
         ),
       // §14 "model missing/unavailable": captured, playable, queued —
-      // enrichment starts the moment the model is provisioned.
+      // enrichment starts the moment the model is provisioned. A missing
+      // model comes first: it is the one the user can act on, and a flat
+      // battery would only be the second thing standing in the way.
       _ => _caption(
           context,
-          widget.modelReady
-              ? context.l10n.queuedForTranscription
-              : context.l10n.waitingForModel,
+          !widget.modelReady
+              ? context.l10n.waitingForModel
+              : widget.powerHold != null
+                  ? context.l10n.waitingForPower(widget.powerHold!)
+                  : context.l10n.queuedForTranscription,
         ),
     };
   }

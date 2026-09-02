@@ -730,4 +730,35 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Pemrosesan latar belakang';
+
+  @override
+  String waitingForPower(int level) {
+    return 'menunggu daya — dilanjutkan di atas $level %';
+  }
+
+  @override
+  String get powerSaverRow => 'Energi';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Berjalan dengan baterai di atas $threshold %';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Terhubung ke daya — tidak ada yang ditahan';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'Dijeda pada $level % — hubungkan pengisi daya';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dijeda pada $level % — $count memo menunggu',
+    );
+    return '$_temp0';
+  }
 }

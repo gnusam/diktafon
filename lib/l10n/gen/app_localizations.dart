@@ -1260,6 +1260,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Background processing'**
   String get notifProcessingChannel;
+
+  /// Caption on a memo whose transcription the battery gate is holding
+  ///
+  /// In en, this message translates to:
+  /// **'waiting for power — transcribing again above {level}%'**
+  String waitingForPower(int level);
+
+  /// No description provided for @powerSaverRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get powerSaverRow;
+
+  /// No description provided for @powerSaverActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs on battery above {threshold}%'**
+  String powerSaverActive(int threshold);
+
+  /// No description provided for @powerSaverOnMains.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugged in — nothing held back'**
+  String get powerSaverOnMains;
+
+  /// No description provided for @powerSaverHolding.
+  ///
+  /// In en, this message translates to:
+  /// **'Holding at {level}% — plug in to resume'**
+  String powerSaverHolding(int level);
+
+  /// No description provided for @powerSaverHoldingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Holding at {level}% — 1 memo waiting} other{Holding at {level}% — {count} memos waiting}}'**
+  String powerSaverHoldingCount(int level, int count);
 }
 
 class _AppLocalizationsDelegate

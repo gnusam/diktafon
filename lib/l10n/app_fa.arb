@@ -171,5 +171,12 @@
   "notifRecording": "در حال ضبط",
   "notifRecordingChannel": "ضبط",
   "notifProcessing": "در حال تکمیل یادداشت‌ها",
-  "notifProcessingChannel": "پردازش در پس‌زمینه"
+  "notifProcessingChannel": "پردازش در پس‌زمینه",
+
+  "waitingForPower": "در انتظار انرژی — بالای {level} ٪ ادامه می‌یابد",
+  "powerSaverRow": "انرژی",
+  "powerSaverActive": "با باتری بالای {threshold} ٪ اجرا می‌شود",
+  "powerSaverOnMains": "به برق وصل است — چیزی متوقف نیست",
+  "powerSaverHolding": "متوقف در {level} ٪ — شارژر را وصل کنید",
+  "powerSaverHoldingCount": "{count, plural, =1{متوقف در {level} ٪ — ۱ یادداشت در انتظار} other{متوقف در {level} ٪ — {count} یادداشت در انتظار}}"
 }

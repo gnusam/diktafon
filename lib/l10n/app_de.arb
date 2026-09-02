@@ -171,5 +171,12 @@
   "notifRecording": "Aufnahme läuft",
   "notifRecordingChannel": "Aufnahme",
   "notifProcessing": "Notizen werden fertiggestellt",
-  "notifProcessingChannel": "Hintergrundverarbeitung"
+  "notifProcessingChannel": "Hintergrundverarbeitung",
+
+  "waitingForPower": "wartet auf Energie — Transkription ab {level} %",
+  "powerSaverRow": "Energie",
+  "powerSaverActive": "Läuft im Akkubetrieb über {threshold} %",
+  "powerSaverOnMains": "Am Netz — nichts wird zurückgehalten",
+  "powerSaverHolding": "Pausiert bei {level} % — zum Fortsetzen anschließen",
+  "powerSaverHoldingCount": "{count, plural, =1{Pausiert bei {level} % — 1 Notiz wartet} other{Pausiert bei {level} % — {count} Notizen warten}}"
 }

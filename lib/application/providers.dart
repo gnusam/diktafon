@@ -36,6 +36,7 @@ import '../services/providers/whisper/whisper_model_manager.dart';
 import '../services/providers/whisper/whisper_transcription_provider.dart';
 import '../services/providers/whisper/whisper_worker.dart';
 import '../services/sync/laptop_sync.dart';
+import '../services/system/power_state.dart';
 import '../services/system/system_settings.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -126,6 +127,12 @@ final jobQueueProvider = Provider<JobQueue>((ref) {
     transcoder: () => ref.read(audioTranscoderProvider),
     sync: () => ref.read(laptopSyncProvider),
     keepAlive: ref.watch(processingKeepAliveProvider),
+    // `read`, never `watch`: the gauge moves every few minutes and
+    // rebuilding the queue under it would let two drains share one job
+    // table (see the note above). The queue asks per pass instead.
+    inferenceAllowed: () =>
+        (ref.read(powerStateProvider).value ?? PowerState.unknown)
+            .allowsInference,
     exportLabels: systemExportLabels,
     systemZhScript: systemZhScript,
   );
@@ -136,6 +143,23 @@ final jobQueueProvider = Provider<JobQueue>((ref) {
 /// How many memos have never reached the laptop — the Settings row's badge.
 final pendingUploadsProvider = StreamProvider<int>(
     (ref) => ref.watch(jobQueueProvider).watchPendingUploads());
+
+/// Fork addition — the live battery gauge behind the queue's inference gate
+/// (§ power). One subscription app-wide; off Android it is a single
+/// `unknown`, which reads as "always allowed".
+final powerStateProvider =
+    StreamProvider<PowerState>((ref) => powerStates());
+
+/// Whether whisper and the LLM may run right now, and at what level they
+/// are held when they may not — what the memo caption and the Settings row
+/// both read.
+final powerHoldProvider = Provider<int?>((ref) =>
+    (ref.watch(powerStateProvider).value ?? PowerState.unknown).holdingAt);
+
+/// How many enrichment jobs are outstanding — the Settings row's count
+/// while the gate is shut.
+final pendingEnrichmentProvider = StreamProvider<int>(
+    (ref) => ref.watch(jobQueueProvider).watchPendingEnrichment());
 
 /// §6.4: WAV capture → archival AAC (MediaCodec/AVAssetWriter on mobile,
 /// ffmpeg CLI on desktop).

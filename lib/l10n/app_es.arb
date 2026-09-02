@@ -171,5 +171,12 @@
   "notifRecording": "Grabando nota",
   "notifRecordingChannel": "Grabación",
   "notifProcessing": "Terminando las notas",
-  "notifProcessingChannel": "Procesamiento en segundo plano"
+  "notifProcessingChannel": "Procesamiento en segundo plano",
+
+  "waitingForPower": "esperando energía — se reanuda por encima del {level} %",
+  "powerSaverRow": "Energía",
+  "powerSaverActive": "Funciona con batería por encima del {threshold} %",
+  "powerSaverOnMains": "Conectado — no se retiene nada",
+  "powerSaverHolding": "En pausa al {level} % — conecta el cargador",
+  "powerSaverHoldingCount": "{count, plural, =1{En pausa al {level} % — 1 nota esperando} other{En pausa al {level} % — {count} notas esperando}}"
 }

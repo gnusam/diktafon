@@ -743,4 +743,36 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Arka planda işleme';
+
+  @override
+  String waitingForPower(int level) {
+    return 'güç bekleniyor — %$level üzerinde devam eder';
+  }
+
+  @override
+  String get powerSaverRow => 'Enerji';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Pilde %$threshold üzerinde çalışır';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Fişe takılı — hiçbir şey bekletilmiyor';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '%$level seviyesinde duraklatıldı — şarja takın';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '%$level seviyesinde duraklatıldı — $count not bekliyor',
+      one: '%$level seviyesinde duraklatıldı — 1 not bekliyor',
+    );
+    return '$_temp0';
+  }
 }

@@ -171,5 +171,12 @@
   "notifRecording": "Trwa nagrywanie",
   "notifRecordingChannel": "Nagrywanie",
   "notifProcessing": "Kończenie notatek",
-  "notifProcessingChannel": "Przetwarzanie w tle"
+  "notifProcessingChannel": "Przetwarzanie w tle",
+
+  "waitingForPower": "czeka na zasilanie — wznowienie powyżej {level} %",
+  "powerSaverRow": "Energia",
+  "powerSaverActive": "Na baterii działa powyżej {threshold} %",
+  "powerSaverOnMains": "Podłączono — nic nie czeka",
+  "powerSaverHolding": "Wstrzymano przy {level} % — podłącz ładowarkę",
+  "powerSaverHoldingCount": "{count, plural, =1{Wstrzymano przy {level} % — czeka 1 nagranie} other{Wstrzymano przy {level} % — czeka {count} nagrań}}"
 }

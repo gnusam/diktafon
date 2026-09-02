@@ -268,6 +268,7 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
                       playing: playback.playing,
                       seekCount: playback.seekCount,
                       modelReady: _modelReady(),
+                      powerHold: ref.watch(powerHoldProvider),
                       showSyncMarks:
                           ref.watch(settingsProvider).value?.syncConfigured ??
                               false,

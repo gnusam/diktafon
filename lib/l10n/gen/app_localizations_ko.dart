@@ -702,4 +702,35 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => '백그라운드 처리';
+
+  @override
+  String waitingForPower(int level) {
+    return '전원 대기 중 — $level % 이상에서 다시 시작';
+  }
+
+  @override
+  String get powerSaverRow => '전원';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return '배터리에서는 $threshold % 이상에서 실행';
+  }
+
+  @override
+  String get powerSaverOnMains => '충전 중 — 대기 중인 항목 없음';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '$level % 에서 일시 중지 — 충전기를 연결하세요';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$level % 에서 일시 중지 — 메모 $count 개 대기 중',
+    );
+    return '$_temp0';
+  }
 }

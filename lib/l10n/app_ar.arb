@@ -171,5 +171,12 @@
   "notifRecording": "جارٍ التسجيل",
   "notifRecordingChannel": "التسجيل",
   "notifProcessing": "جارٍ إنهاء المذكرات",
-  "notifProcessingChannel": "المعالجة في الخلفية"
+  "notifProcessingChannel": "المعالجة في الخلفية",
+
+  "waitingForPower": "في انتظار الطاقة — يستأنف فوق {level} ٪",
+  "powerSaverRow": "الطاقة",
+  "powerSaverActive": "يعمل على البطارية فوق {threshold} ٪",
+  "powerSaverOnMains": "موصول بالتيار — لا شيء متوقف",
+  "powerSaverHolding": "متوقف عند {level} ٪ — وصّل الشاحن للمتابعة",
+  "powerSaverHoldingCount": "{count, plural, =1{متوقف عند {level} ٪ — مذكرة واحدة تنتظر} other{متوقف عند {level} ٪ — {count} مذكرات تنتظر}}"
 }

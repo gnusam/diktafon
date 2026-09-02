@@ -714,6 +714,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => '后台处理';
+
+  @override
+  String waitingForPower(int level) {
+    return '正在等待电量 — 高于 $level % 后继续';
+  }
+
+  @override
+  String get powerSaverRow => '电量';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return '使用电池时高于 $threshold % 才运行';
+  }
+
+  @override
+  String get powerSaverOnMains => '已接通电源 — 没有任何等待';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '在 $level % 暂停 — 接上充电器即可继续';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '在 $level % 暂停 — $count 条备忘等待中',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1325,4 +1356,35 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notifProcessingChannel => '背景處理';
+
+  @override
+  String waitingForPower(int level) {
+    return '正在等待電量 — 高於 $level % 後繼續';
+  }
+
+  @override
+  String get powerSaverRow => '電量';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return '使用電池時高於 $threshold % 才執行';
+  }
+
+  @override
+  String get powerSaverOnMains => '已接上電源 — 沒有任何等待';
+
+  @override
+  String powerSaverHolding(int level) {
+    return '在 $level % 暫停 — 接上充電器即可繼續';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '在 $level % 暫停 — $count 則備忘等待中',
+    );
+    return '$_temp0';
+  }
 }

@@ -782,4 +782,36 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Фонова обробка';
+
+  @override
+  String waitingForPower(int level) {
+    return 'очікує живлення — продовжиться вище $level %';
+  }
+
+  @override
+  String get powerSaverRow => 'Енергія';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Від батареї працює вище $threshold %';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Підключено до мережі — ніщо не чекає';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'Пауза на $level % — підключіть зарядку';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Пауза на $level % — чекають $count нотаток',
+      one: 'Пауза на $level % — чекає 1 нотатка',
+    );
+    return '$_temp0';
+  }
 }

@@ -171,5 +171,12 @@
   "notifRecording": "रिकॉर्डिंग जारी है",
   "notifRecordingChannel": "रिकॉर्डिंग",
   "notifProcessing": "मेमो पूरे किए जा रहे हैं",
-  "notifProcessingChannel": "पृष्ठभूमि प्रसंस्करण"
+  "notifProcessingChannel": "पृष्ठभूमि प्रसंस्करण",
+
+  "waitingForPower": "ऊर्जा की प्रतीक्षा — {level} % से ऊपर फिर शुरू",
+  "powerSaverRow": "ऊर्जा",
+  "powerSaverActive": "बैटरी पर {threshold} % से ऊपर चलता है",
+  "powerSaverOnMains": "चार्जर लगा है — कुछ भी रुका नहीं",
+  "powerSaverHolding": "{level} % पर रुका — जारी रखने के लिए चार्जर लगाएँ",
+  "powerSaverHoldingCount": "{count, plural, =1{{level} % पर रुका — 1 मेमो प्रतीक्षा में} other{{level} % पर रुका — {count} मेमो प्रतीक्षा में}}"
 }

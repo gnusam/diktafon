@@ -12,6 +12,7 @@ import '../../services/providers/model_manager.dart';
 import '../../services/providers/transcription_provider.dart';
 import '../../services/providers/whisper/whisper_model_manager.dart';
 import '../../services/system/device_ram.dart';
+import '../../services/system/power_state.dart';
 import '../theme/tape_colors.dart';
 import '../widgets/content_width.dart';
 import '../widgets/directional_chevrons.dart';
@@ -102,6 +103,13 @@ class SettingsScreen extends ConsumerWidget {
               title: l10n.summaryModel,
               value: _llmRowValue(context, ref, settings),
               onTap: () => _pickModel(context, const LlmModelPickerDialog()),
+            ),
+            // Fork addition: when the intelligence runs. Information, not an
+            // action — the threshold is fixed, and the only lever the user
+            // has is a cable.
+            SettingsRow(
+              title: l10n.powerSaverRow,
+              value: _powerRowValue(context, ref),
             ),
           ]),
           SettingsGroup(title: l10n.groupAppearance, rows: [
@@ -233,6 +241,24 @@ class SettingsScreen extends ConsumerWidget {
     final model = LlmModel.byTier(settings.llmTier);
     return _modelRowValue(context, model,
         ref.watch(llmModelStatesProvider).value, model.sizeLabel);
+  }
+
+  /// Three honest states: holding (and how many memos that costs), running
+  /// on battery with room to spare, or on mains where the gate is moot.
+  String _powerRowValue(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final hold = ref.watch(powerHoldProvider);
+    if (hold == null) {
+      final charging =
+          (ref.watch(powerStateProvider).value ?? PowerState.unknown).charging;
+      return charging
+          ? l10n.powerSaverOnMains
+          : l10n.powerSaverActive(lowBatteryPercent);
+    }
+    final waiting = ref.watch(pendingEnrichmentProvider).value ?? 0;
+    return waiting == 0
+        ? l10n.powerSaverHolding(hold)
+        : l10n.powerSaverHoldingCount(hold, waiting);
   }
 
   String _modelRowValue(BuildContext context, ModelSpec model,

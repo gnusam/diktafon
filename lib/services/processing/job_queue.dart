@@ -89,6 +89,7 @@ class JobQueue {
       {this._transcoder,
       this._sync,
       this._keepAlive,
+      this._inferenceAllowed,
       this._exportLabels = _defaultExportLabels,
       this._retryDelayUnit = const Duration(seconds: 1),
       this._systemZhScript = _defaultZhScript});
@@ -113,6 +114,18 @@ class JobQueue {
   /// the queue idles. Null off Android (and in tests that predate it), where
   /// the queue simply runs unprotected as it always did.
   final ProcessingKeepAlive? _keepAlive;
+
+  /// Fork addition — the battery gate. Whisper and the LLM are the two
+  /// stages that genuinely cost a phone; below the threshold on battery
+  /// they hold. Read fresh on every pass of the loop, like the model and
+  /// settings gates beside it, so a charger plugged in mid-backlog releases
+  /// the *next* job rather than interrupting the one running.
+  ///
+  /// Deliberately not applied to `uploadMemo`: a finished memo reaching the
+  /// laptop is a few hundred kilobytes, and holding that back on low
+  /// battery would recreate exactly the symptom this fork exists to remove.
+  /// Null (tests, every platform but Android) → always open.
+  final bool Function()? _inferenceAllowed;
 
   /// The strings a synced memo's markdown is rendered with — resolved from
   /// the system locale, because jobs run with no widget tree to ask.
@@ -211,6 +224,21 @@ class JobQueue {
     return (_db.selectOnly(_db.memos)
           ..addColumns([count])
           ..where(_db.memos.syncedAt.isNull()))
+        .watchSingle()
+        .map((row) => row.read(count) ?? 0);
+  }
+
+  /// Count for the battery-gate row in Settings: enrichment jobs still
+  /// queued. Reads the jobs, not the memo statuses — a memo waiting on a
+  /// shut gate keeps its honest `stored`, and only the job knows there is
+  /// work outstanding for it.
+  Stream<int> watchPendingEnrichment() {
+    final count = _db.jobs.id.count();
+    return (_db.selectOnly(_db.jobs)
+          ..addColumns([count])
+          ..where(_db.jobs.status.equals('queued') &
+              _db.jobs.type.isIn(
+                  [JobType.transcribe.name, JobType.summarizeMemo.name])))
         .watchSingle()
         .map((row) => row.read(count) ?? 0);
   }
@@ -401,8 +429,12 @@ class JobQueue {
       final settings = await _settings.get();
       final llmReady =
           await _summarization().modelStatus() == ModelStatus.ready;
+      // The battery gate, re-read here with the rest: a charger plugged in
+      // mid-drain opens it on the next pass, no restart, no gesture.
+      final powered = _inferenceAllowed?.call() ?? true;
       final runnable = <String>[];
-      if (await _transcription().modelStatus() == ModelStatus.ready) {
+      if (powered &&
+          await _transcription().modelStatus() == ModelStatus.ready) {
         runnable.add(JobType.transcribe.name);
       }
       // Legacy cleanup rows only hand over to the gist — no LLM involved,
@@ -410,7 +442,7 @@ class JobQueue {
       runnable.add(JobType.cleanupTranscript.name);
       // Transcoding needs no model, only a wired platform encoder.
       if (_transcoder != null) runnable.add(JobType.transcodeAudio.name);
-      if (settings.summariesEnabled && llmReady) {
+      if (powered && settings.summariesEnabled && llmReady) {
         runnable.addAll([
           JobType.summarizeMemo.name,
           JobType.updateCassetteSummary.name,

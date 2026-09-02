@@ -198,5 +198,12 @@
   "notifRecording": "Enregistrement en cours",
   "notifRecordingChannel": "Enregistrement",
   "notifProcessing": "Finalisation des mémos",
-  "notifProcessingChannel": "Traitement en arrière-plan"
+  "notifProcessingChannel": "Traitement en arrière-plan",
+
+  "waitingForPower": "en attente d'énergie — reprise au-dessus de {level} %",
+  "powerSaverRow": "Énergie",
+  "powerSaverActive": "Tourne sur batterie au-dessus de {threshold} %",
+  "powerSaverOnMains": "Sur secteur — rien n'est retenu",
+  "powerSaverHolding": "En pause à {level} % — branche pour reprendre",
+  "powerSaverHoldingCount": "{count, plural, =1{En pause à {level} % — 1 mémo en attente} other{En pause à {level} % — {count} mémos en attente}}"
 }

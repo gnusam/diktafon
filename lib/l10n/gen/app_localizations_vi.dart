@@ -730,4 +730,35 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get notifProcessingChannel => 'Xử lý nền';
+
+  @override
+  String waitingForPower(int level) {
+    return 'đang chờ nguồn — tiếp tục khi trên $level %';
+  }
+
+  @override
+  String get powerSaverRow => 'Năng lượng';
+
+  @override
+  String powerSaverActive(int threshold) {
+    return 'Chạy bằng pin khi trên $threshold %';
+  }
+
+  @override
+  String get powerSaverOnMains => 'Đang cắm sạc — không có gì bị giữ lại';
+
+  @override
+  String powerSaverHolding(int level) {
+    return 'Tạm dừng ở $level % — cắm sạc để tiếp tục';
+  }
+
+  @override
+  String powerSaverHoldingCount(int level, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tạm dừng ở $level % — $count ghi chú đang chờ',
+    );
+    return '$_temp0';
+  }
 }

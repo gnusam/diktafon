@@ -171,5 +171,12 @@
   "notifRecording": "녹음 중",
   "notifRecordingChannel": "녹음",
   "notifProcessing": "메모 마무리 중",
-  "notifProcessingChannel": "백그라운드 처리"
+  "notifProcessingChannel": "백그라운드 처리",
+
+  "waitingForPower": "전원 대기 중 — {level} % 이상에서 다시 시작",
+  "powerSaverRow": "전원",
+  "powerSaverActive": "배터리에서는 {threshold} % 이상에서 실행",
+  "powerSaverOnMains": "충전 중 — 대기 중인 항목 없음",
+  "powerSaverHolding": "{level} % 에서 일시 중지 — 충전기를 연결하세요",
+  "powerSaverHoldingCount": "{count, plural, other{{level} % 에서 일시 중지 — 메모 {count} 개 대기 중}}"
 }

@@ -31,6 +31,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private val decodeExecutor = Executors.newSingleThreadExecutor()
+
+    // Fork addition: feeds the queue's battery gate (see PowerStatePlugin).
+    private var power: PowerStatePlugin? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     // One SAF save at a time: the pending Dart result + the file to copy
@@ -104,6 +107,10 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // Fork addition: battery level + on-mains, streamed to the queue's
+        // gate — the phone going on the charger resumes a paused backlog
+        // without waiting for the app to be opened.
+        power = PowerStatePlugin(flutterEngine.dartExecutor.binaryMessenger, this)
         // Counterpart of HostCodecAudioTranscoder (lib/services/audio/
         // audio_transcoder.dart): WAV capture → archival AAC-LC m4a (§6.4).
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "diktafon/transcoder")
@@ -145,6 +152,12 @@ class MainActivity : FlutterActivity() {
             // won't survive backgrounding.
             false
         }
+    }
+
+    override fun onDestroy() {
+        power?.dispose()
+        power = null
+        super.onDestroy()
     }
 
     private fun startProcessingService(title: String?, channelName: String?): Boolean {
