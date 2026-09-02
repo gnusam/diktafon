@@ -724,4 +724,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Perekaman';
+
+  @override
+  String get notifProcessing => 'Menyelesaikan memo';
+
+  @override
+  String get notifProcessingChannel => 'Pemrosesan latar belakang';
 }

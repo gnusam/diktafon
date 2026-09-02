@@ -169,5 +169,7 @@
   "notifDownloading": "Scaricamento di {label}",
   "notifModelInstalled": "{label} installato",
   "notifRecording": "Registrazione in corso",
-  "notifRecordingChannel": "Registrazione"
+  "notifRecordingChannel": "Registrazione",
+  "notifProcessing": "Completamento dei memo",
+  "notifProcessingChannel": "Elaborazione in background"
 }

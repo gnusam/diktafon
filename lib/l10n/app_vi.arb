@@ -169,5 +169,7 @@
   "notifDownloading": "Đang tải {label}",
   "notifModelInstalled": "Đã cài {label}",
   "notifRecording": "Đang thu âm",
-  "notifRecordingChannel": "Thu âm"
+  "notifRecordingChannel": "Thu âm",
+  "notifProcessing": "Đang hoàn tất ghi chú",
+  "notifProcessingChannel": "Xử lý nền"
 }

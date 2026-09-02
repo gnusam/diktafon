@@ -169,5 +169,7 @@
   "notifDownloading": "Baixando {label}",
   "notifModelInstalled": "{label} instalado",
   "notifRecording": "Gravando nota",
-  "notifRecordingChannel": "Gravação"
+  "notifRecordingChannel": "Gravação",
+  "notifProcessing": "A concluir as notas",
+  "notifProcessingChannel": "Processamento em segundo plano"
 }

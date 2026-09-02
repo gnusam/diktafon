@@ -776,4 +776,10 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Запис';
+
+  @override
+  String get notifProcessing => 'Завершення нотаток';
+
+  @override
+  String get notifProcessingChannel => 'Фонова обробка';
 }

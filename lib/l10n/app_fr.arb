@@ -196,5 +196,7 @@
   "syncQueuedOffline": "Laptop endormi — mis en file jusqu'à son réveil.",
   "syncSendCassette": "Envoyer vers le laptop",
   "notifRecording": "Enregistrement en cours",
-  "notifRecordingChannel": "Enregistrement"
+  "notifRecordingChannel": "Enregistrement",
+  "notifProcessing": "Finalisation des mémos",
+  "notifProcessingChannel": "Traitement en arrière-plan"
 }

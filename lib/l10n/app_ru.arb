@@ -169,5 +169,7 @@
   "notifDownloading": "Скачивается {label}",
   "notifModelInstalled": "{label} — установлено",
   "notifRecording": "Идёт запись",
-  "notifRecordingChannel": "Запись"
+  "notifRecordingChannel": "Запись",
+  "notifProcessing": "Завершение заметок",
+  "notifProcessingChannel": "Фоновая обработка"
 }

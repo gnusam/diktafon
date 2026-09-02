@@ -4,6 +4,8 @@ library;
 
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/database.dart';
@@ -15,6 +17,7 @@ import '../domain/models.dart';
 import '../domain/script.dart';
 import '../domain/tape.dart';
 import '../l10n/export_labels.dart';
+import '../l10n/locale_resolution.dart';
 import '../services/audio/audio_transcoder.dart';
 import '../services/audio/capture_recovery.dart';
 import '../services/audio/pcm_decoder.dart';
@@ -122,6 +125,7 @@ final jobQueueProvider = Provider<JobQueue>((ref) {
     () => ref.read(summarizationProvider),
     transcoder: () => ref.read(audioTranscoderProvider),
     sync: () => ref.read(laptopSyncProvider),
+    keepAlive: ref.watch(processingKeepAliveProvider),
     exportLabels: systemExportLabels,
     systemZhScript: systemZhScript,
   );
@@ -149,6 +153,33 @@ class RecordingForegroundGlue {
 
 final recordingForegroundGlueProvider =
     Provider<RecordingForegroundGlue>((ref) => RecordingForegroundGlue());
+
+/// Fork addition: the Android dataSync foreground service the job queue
+/// holds while it works — without it a backgrounded app is frozen mid-job
+/// and a memo left behind never finishes, let alone reaches the laptop.
+class AndroidProcessingKeepAlive implements ProcessingKeepAlive {
+  @override
+  Future<void> acquire() async {
+    // Resolved per acquire, not once: the notification must follow a locale
+    // the user changed since launch.
+    final l10n = systemL10n();
+    await startProcessingForegroundService(
+      title: l10n.notifProcessing,
+      channelName: l10n.notifProcessingChannel,
+    );
+  }
+
+  @override
+  Future<void> release() => stopProcessingForegroundService();
+}
+
+/// Null off Android: iOS suspends the process whatever we ask for, and a
+/// desktop activity never pauses — a queue with no keep-alive behaves
+/// exactly as it did before this existed.
+final processingKeepAliveProvider = Provider<ProcessingKeepAlive?>((ref) =>
+    defaultTargetPlatform == TargetPlatform.android
+        ? AndroidProcessingKeepAlive()
+        : null);
 
 /// §14: killed captures come back as memos at launch — wired like the
 /// importer, through the queue's own entry points.

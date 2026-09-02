@@ -169,5 +169,7 @@
   "notifDownloading": "{label} indiriliyor",
   "notifModelInstalled": "{label} yüklendi",
   "notifRecording": "Kayıt yapılıyor",
-  "notifRecordingChannel": "Kayıt"
+  "notifRecordingChannel": "Kayıt",
+  "notifProcessing": "Notlar tamamlanıyor",
+  "notifProcessingChannel": "Arka planda işleme"
 }

@@ -169,5 +169,7 @@
   "notifDownloading": "{label} 다운로드 중",
   "notifModelInstalled": "{label} 설치됨",
   "notifRecording": "녹음 중",
-  "notifRecordingChannel": "녹음"
+  "notifRecordingChannel": "녹음",
+  "notifProcessing": "메모 마무리 중",
+  "notifProcessingChannel": "백그라운드 처리"
 }

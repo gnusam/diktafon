@@ -745,4 +745,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Aufnahme';
+
+  @override
+  String get notifProcessing => 'Notizen werden fertiggestellt';
+
+  @override
+  String get notifProcessingChannel => 'Hintergrundverarbeitung';
 }

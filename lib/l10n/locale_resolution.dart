@@ -12,6 +12,7 @@ import 'dart:ui';
 import 'package:flutter/widgets.dart' show basicLocaleListResolution;
 
 import '../domain/script.dart';
+import 'gen/app_localizations.dart';
 
 /// A `zh` locale without a script gains the one its region implies;
 /// everything else passes through.
@@ -28,3 +29,15 @@ Locale padZhLocale(Locale locale) =>
 Locale resolveAppLocale(List<Locale>? preferred, Iterable<Locale> supported) =>
     basicLocaleListResolution(
         preferred?.map(padZhLocale).toList(), supported);
+
+/// The strings for code that renders outside any widget tree — a foreground
+/// service's notification, a job running with nobody looking. Resolves the
+/// system locale the way `main()` does, English when it has no ARB.
+AppLocalizations systemL10n() {
+  try {
+    return lookupAppLocalizations(
+        padZhLocale(PlatformDispatcher.instance.locale));
+  } catch (_) {
+    return lookupAppLocalizations(const Locale('en'));
+  }
+}

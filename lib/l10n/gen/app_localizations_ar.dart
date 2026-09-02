@@ -775,4 +775,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'التسجيل';
+
+  @override
+  String get notifProcessing => 'جارٍ إنهاء المذكرات';
+
+  @override
+  String get notifProcessingChannel => 'المعالجة في الخلفية';
 }

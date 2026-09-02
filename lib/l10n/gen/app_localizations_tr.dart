@@ -737,4 +737,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Kayıt';
+
+  @override
+  String get notifProcessing => 'Notlar tamamlanıyor';
+
+  @override
+  String get notifProcessingChannel => 'Arka planda işleme';
 }

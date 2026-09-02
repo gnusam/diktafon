@@ -739,4 +739,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'रिकॉर्डिंग';
+
+  @override
+  String get notifProcessing => 'मेमो पूरे किए जा रहे हैं';
+
+  @override
+  String get notifProcessingChannel => 'पृष्ठभूमि प्रसंस्करण';
 }

@@ -76,6 +76,46 @@ Future<void> stopRecordingForegroundService() async {
   }
 }
 
+/// Fork addition: pins a dataSync-type foreground service while the job
+/// queue works. Without it a backgrounded process is a cached process, and
+/// Android freezes its threads — a memo recorded and left behind stops
+/// mid-transcription and never reaches the laptop. Returns true when the
+/// service is up; false when Android rejected the start (the drain had begun
+/// with the app already backgrounded) — the queue runs on regardless, just
+/// unprotected. Android-only: iOS ends the work at suspension whatever we
+/// do, and desktop never pauses.
+Future<bool> startProcessingForegroundService({
+  required String title,
+  required String channelName,
+}) async {
+  if (!Platform.isAndroid) return false;
+  try {
+    final started =
+        await _channel.invokeMethod<bool>('startProcessingService', {
+      'title': title,
+      'channelName': channelName,
+    });
+    return started ?? false;
+  } on PlatformException {
+    return false;
+  } on MissingPluginException {
+    return false; // widget tests with no platform behind the channel
+  }
+}
+
+/// Tears the processing service (and its notification) down. Safe to call
+/// when nothing is running.
+Future<void> stopProcessingForegroundService() async {
+  if (!Platform.isAndroid) return;
+  try {
+    await _channel.invokeMethod<void>('stopProcessingService');
+  } on PlatformException {
+    // The service dies with the process at the latest; nothing to add.
+  } on MissingPluginException {
+    // As above.
+  }
+}
+
 /// Offers the OS "save document" dialog (SAF create-document on Android,
 /// export document picker on iOS) and lands the finished file at [sourcePath]
 /// wherever the user picked (Drive, Files, …). Returns false when the user

@@ -91,6 +91,16 @@ class MainActivity : FlutterActivity() {
                         stopService(Intent(this, RecordingForegroundService::class.java))
                         result.success(null)
                     }
+                    // Fork addition: the same keep-alive for the queue's own
+                    // work — false when the OS refuses (the app had already
+                    // left the foreground), never an error.
+                    "startProcessingService" -> result.success(
+                        startProcessingService(call.argument("title"),
+                            call.argument("channelName")))
+                    "stopProcessingService" -> {
+                        stopService(Intent(this, ProcessingForegroundService::class.java))
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -133,6 +143,24 @@ class MainActivity : FlutterActivity() {
             // ForegroundServiceStartNotAllowedException & friends: the app
             // was not foreground enough — recording still works, it just
             // won't survive backgrounding.
+            false
+        }
+    }
+
+    private fun startProcessingService(title: String?, channelName: String?): Boolean {
+        return try {
+            ContextCompat.startForegroundService(
+                this,
+                Intent(this, ProcessingForegroundService::class.java).apply {
+                    putExtra(ProcessingForegroundService.EXTRA_TITLE, title)
+                    putExtra(ProcessingForegroundService.EXTRA_CHANNEL_NAME, channelName)
+                })
+            true
+        } catch (e: Exception) {
+            // ForegroundServiceStartNotAllowedException: the drain began with
+            // the app already in the background (a parked upload coming due).
+            // The queue runs anyway — it just has no protection from the
+            // freezer, exactly the pre-service behaviour.
             false
         }
     }

@@ -169,5 +169,7 @@
   "notifDownloading": "正在下载 {label}",
   "notifModelInstalled": "{label} 已安装",
   "notifRecording": "正在录音",
-  "notifRecordingChannel": "录音"
+  "notifRecordingChannel": "录音",
+  "notifProcessing": "正在处理备忘",
+  "notifProcessingChannel": "后台处理"
 }

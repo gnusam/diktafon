@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
@@ -145,14 +144,7 @@ class RecordingController extends Notifier<RecordingState> {
 
   /// The service notification renders outside any widget tree — resolve the
   /// system locale the way main() does for download notifications (§13).
-  AppLocalizations _systemL10n() {
-    try {
-      return lookupAppLocalizations(
-          padZhLocale(ui.PlatformDispatcher.instance.locale));
-    } catch (_) {
-      return lookupAppLocalizations(const ui.Locale('en'));
-    }
-  }
+  AppLocalizations _systemL10n() => systemL10n();
 
   /// The OS can end the capture behind the app's back (phone call, Siri,
   /// another app claiming the mic): the plugin reports the stop — finalize
@@ -177,7 +169,6 @@ class RecordingController extends Notifier<RecordingState> {
       final recorder = ref.read(recorderServiceProvider);
       final result = await recorder.stop();
       state = RecordingState.idle;
-      await ref.read(recordingForegroundGlueProvider).stop();
 
       await ref.read(memoRepositoryProvider).insert(
             recorder.toMemo(result, cassetteId),
@@ -186,6 +177,15 @@ class RecordingController extends Notifier<RecordingState> {
       final jobs = ref.read(jobQueueProvider);
       await jobs.enqueueTranscription(result.memoId);
       await jobs.enqueueTranscode(result.memoId);
+      // Only now: the mic service is released *after* the queue has taken
+      // its own keep-alive, so the process is never momentarily background
+      // between the two. That gap matters when the capture ended with the
+      // app already away — a phone call claiming the mic mid-recording —
+      // because Android only lets a background app start a service while
+      // another foreground service still holds it there. The mic itself
+      // closed at recorder.stop() above; what lingers is a notification,
+      // for the length of two inserts.
+      await ref.read(recordingForegroundGlueProvider).stop();
       // Row + jobs are durable — from here the normal machinery owns the
       // capture, so launch recovery (§14) must stop considering it.
       await removeCaptureMarker(result.filePath);

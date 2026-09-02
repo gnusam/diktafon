@@ -169,5 +169,7 @@
   "notifDownloading": "Завантажується {label}",
   "notifModelInstalled": "{label} — установлено",
   "notifRecording": "Триває запис",
-  "notifRecordingChannel": "Запис"
+  "notifRecordingChannel": "Запис",
+  "notifProcessing": "Завершення нотаток",
+  "notifProcessingChannel": "Фонова обробка"
 }

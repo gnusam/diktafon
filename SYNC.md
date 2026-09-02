@@ -89,6 +89,40 @@ typed address, for a desktop build or a laptop on the LAN.
   Settings row, or a cassette's *Send to laptop*.
 - Editing a transcript un-marks the memo: the laptop's copy describes the
   old words, so it is sent again.
+
+## Leaving the app, and what keeps running
+
+Record, swipe away, get on with your day: the transcription, the gist, the
+transcode and the upload all finish without you. That is not free on Android
+— a backgrounded app is a *cached* app, and the OS freezes its threads
+within seconds. Jobs were always durable, but frozen ones make no progress,
+so a memo left behind used to sit half-transcribed until the app was next
+opened.
+
+So the queue holds a `dataSync` foreground service for exactly as long as it
+has a job in hand: **"Finalisation des mémos"** in the notification shade is
+the app working while you are elsewhere. It appears only when there is real
+work, and goes as soon as the queue runs dry — the launch drain that finds
+nothing to do never raises it.
+
+Two things it deliberately does **not** do:
+
+- **It does not survive the queue going idle.** A memo parked for an absent
+  laptop is retried while the app lives, but once the process is frozen (or
+  killed) the retry waits for the next launch. Holding a service open for a
+  laptop that may be off all day would cost battery, and Android meters
+  `dataSync` at six hours a day besides.
+- **It cannot start from the background.** Android only lets a foreground
+  app raise one. In practice the queue always claims it at record-stop —
+  with the app on screen, or with the microphone service still holding the
+  process foreground when a phone call ends the capture behind your back.
+
+Battery optimisation for the app is worth turning off if you record long
+memos on an aggressive OEM ROM (Xiaomi, Samsung, Huawei): the service asks
+the OS not to freeze the process, it does not stop the OEM killing it.
+None of this applies to iOS, which suspends the process whatever we ask, or
+to desktop, which never pauses.
+
 ## Sending a cassette, and where it goes
 
 Sending is a cassette's own affair — its ⋮ menu, **Send to laptop** — not a

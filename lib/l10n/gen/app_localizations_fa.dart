@@ -739,4 +739,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'ضبط';
+
+  @override
+  String get notifProcessing => 'در حال تکمیل یادداشت‌ها';
+
+  @override
+  String get notifProcessingChannel => 'پردازش در پس‌زمینه';
 }

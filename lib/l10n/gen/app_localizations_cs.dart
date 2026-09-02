@@ -753,4 +753,10 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Nahrávání';
+
+  @override
+  String get notifProcessing => 'Dokončování poznámek';
+
+  @override
+  String get notifProcessingChannel => 'Zpracování na pozadí';
 }

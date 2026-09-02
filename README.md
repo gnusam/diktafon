@@ -19,10 +19,14 @@
 </p>
 
 > **This is a personal fork of [jaromiru/diktafon](https://github.com/jaromiru/diktafon).**
-> It adds one thing: an opt-in **laptop sync** — each memo posts itself to a
-> receiver on your own machine over your own tunnel, and lands as the same
-> directory an export would have produced. Off by default; nothing leaves the
-> phone until you paste an address. See **[SYNC.md](SYNC.md)**.
+> It adds an opt-in **laptop sync** — each memo posts itself to a receiver on
+> your own machine over your own tunnel, and lands as the same directory an
+> export would have produced. Off by default; nothing leaves the phone until
+> you paste an address. And because that only pays off if it happens without
+> you, the processing queue now **keeps running when you leave the app**:
+> transcription, gist, transcode and upload finish in the background under a
+> foreground service instead of freezing until the app is next opened. See
+> **[SYNC.md](SYNC.md)**.
 > The app id is `cz.mod42.diktafon.sam` so it installs alongside the release
 > build rather than replacing it.
 

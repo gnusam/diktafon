@@ -1248,6 +1248,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recording'**
   String get notifRecordingChannel;
+
+  /// No description provided for @notifProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing memos'**
+  String get notifProcessing;
+
+  /// No description provided for @notifProcessingChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Background processing'**
+  String get notifProcessingChannel;
 }
 
 class _AppLocalizationsDelegate

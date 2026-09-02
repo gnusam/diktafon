@@ -537,15 +537,33 @@ void main() {
     test('memos with live jobs, and terminal memos, are left alone',
         () async {
       engine.status = ModelStatus.notInstalled;
-      await seedMemo('m1');
-      await queue.enqueueTranscription('m1'); // covered by its queued job
+      // Both memos reach their final state before the enqueue below lets a
+      // drain — and with it the once-per-process sweep — off the leash:
+      // m2 flipped to failed *after* that point is a race, not a fixture.
       await seedMemo('m2');
       await memos.updateStatus('m2', MemoStatus.failed); // terminal (§14)
+      await seedMemo('m1');
+      await queue.enqueueTranscription('m1'); // covered by its queued job
       await queue.drain();
 
       expect((await jobs()).single.targetId, 'm1',
           reason: 'no duplicate for m1, nothing for failed m2');
       expect((await memoRow('m2')).status, 'failed');
+    });
+
+    test('a memo recorded mid-sweep is not transcribed twice', () async {
+      // Record-stop writes the memo row and its job as two statements, and
+      // the launch drain sweeps for job-less memos: land a stop inside that
+      // window and the memo used to come out with two transcribe jobs —
+      // the same recording through whisper twice, on battery, for nothing.
+      engine.status = ModelStatus.notInstalled; // keep the jobs observable
+      final sweeping = queue.drain();
+      await seedMemo('m1');
+      await queue.enqueueTranscription('m1');
+      await sweeping;
+      await queue.drain();
+
+      expect(await jobs(), hasLength(1));
     });
 
     test('reconciliation runs once per queue instance', () async {

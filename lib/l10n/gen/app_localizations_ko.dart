@@ -696,4 +696,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => '녹음';
+
+  @override
+  String get notifProcessing => '메모 마무리 중';
+
+  @override
+  String get notifProcessingChannel => '백그라운드 처리';
 }

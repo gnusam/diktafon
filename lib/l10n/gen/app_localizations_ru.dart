@@ -775,4 +775,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Запись';
+
+  @override
+  String get notifProcessing => 'Завершение заметок';
+
+  @override
+  String get notifProcessingChannel => 'Фоновая обработка';
 }

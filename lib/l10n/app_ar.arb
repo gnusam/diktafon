@@ -169,5 +169,7 @@
   "notifDownloading": "جارٍ تنزيل {label}",
   "notifModelInstalled": "تم تثبيت {label}",
   "notifRecording": "جارٍ التسجيل",
-  "notifRecordingChannel": "التسجيل"
+  "notifRecordingChannel": "التسجيل",
+  "notifProcessing": "جارٍ إنهاء المذكرات",
+  "notifProcessingChannel": "المعالجة في الخلفية"
 }

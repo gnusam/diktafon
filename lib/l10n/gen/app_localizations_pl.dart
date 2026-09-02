@@ -775,4 +775,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Nagrywanie';
+
+  @override
+  String get notifProcessing => 'Kończenie notatek';
+
+  @override
+  String get notifProcessingChannel => 'Przetwarzanie w tle';
 }

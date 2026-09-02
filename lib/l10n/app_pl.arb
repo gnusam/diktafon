@@ -169,5 +169,7 @@
   "notifDownloading": "Pobieranie: {label}",
   "notifModelInstalled": "Zainstalowano {label}",
   "notifRecording": "Trwa nagrywanie",
-  "notifRecordingChannel": "Nagrywanie"
+  "notifRecordingChannel": "Nagrywanie",
+  "notifProcessing": "Kończenie notatek",
+  "notifProcessingChannel": "Przetwarzanie w tle"
 }

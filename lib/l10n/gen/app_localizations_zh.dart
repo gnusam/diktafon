@@ -708,6 +708,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => '录音';
+
+  @override
+  String get notifProcessing => '正在处理备忘';
+
+  @override
+  String get notifProcessingChannel => '后台处理';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1313,4 +1319,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notifRecordingChannel => '錄音';
+
+  @override
+  String get notifProcessing => '正在處理備忘';
+
+  @override
+  String get notifProcessingChannel => '背景處理';
 }

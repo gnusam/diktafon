@@ -169,5 +169,7 @@
   "notifDownloading": "در حال دانلود {label}",
   "notifModelInstalled": "{label} نصب شد",
   "notifRecording": "در حال ضبط",
-  "notifRecordingChannel": "ضبط"
+  "notifRecordingChannel": "ضبط",
+  "notifProcessing": "در حال تکمیل یادداشت‌ها",
+  "notifProcessingChannel": "پردازش در پس‌زمینه"
 }

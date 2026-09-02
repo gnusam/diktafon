@@ -59,6 +59,24 @@ enum JobType {
 /// old 350-char gate was script-biased; 117 ≈ 350/3 keeps Latin behaviour.
 const int gistTokenThreshold = 117;
 
+/// Fork addition — the OS handle that keeps this process alive while the
+/// queue works.
+///
+/// Durability was never the problem: jobs survive a kill. *Progress* was.
+/// A backgrounded Android app is a cached app, and the OS freezes a cached
+/// app's threads within seconds — so a memo recorded and left behind stopped
+/// mid-whisper and never reached the laptop, however patient the queue was.
+/// Holding a foreground service for exactly as long as a job is in hand is
+/// what buys the drain the right to run at all.
+///
+/// A class-shaped seam, like [AudioTranscoder] and [LaptopSync]: tests get a
+/// counter, and every platform but Android gets nothing (iOS suspends the
+/// process whatever we do; desktop never pauses).
+abstract class ProcessingKeepAlive {
+  Future<void> acquire();
+  Future<void> release();
+}
+
 /// Durable background pipeline (§6.5): jobs persist in the DB so they survive
 /// restarts; ML concurrency is 1 to bound CPU/thermals/battery.
 ///
@@ -70,6 +88,7 @@ class JobQueue {
       this._transcription, this._summarization,
       {this._transcoder,
       this._sync,
+      this._keepAlive,
       this._exportLabels = _defaultExportLabels,
       this._retryDelayUnit = const Duration(seconds: 1),
       this._systemZhScript = _defaultZhScript});
@@ -89,6 +108,11 @@ class JobQueue {
   /// it) keeps upload jobs parked in the queue, exactly like a missing
   /// transcoder does.
   final LaptopSync Function()? _sync;
+
+  /// Fork addition: kept pinned while a job is in hand, dropped the moment
+  /// the queue idles. Null off Android (and in tests that predate it), where
+  /// the queue simply runs unprotected as it always did.
+  final ProcessingKeepAlive? _keepAlive;
 
   /// The strings a synced memo's markdown is rendered with — resolved from
   /// the system locale, because jobs run with no widget tree to ask.
@@ -117,9 +141,36 @@ class JobQueue {
   bool _recoveredOrphans = false;
   static const _maxAttempts = 5;
 
+  /// Whether the keep-alive is currently held, and the chain that serializes
+  /// acquire/release across the platform channel — flipping the flag is
+  /// synchronous so a release can never overtake the acquire it undoes.
+  bool _pinned = false;
+  Future<void> _keepAliveOps = Future<void>.value();
+
+  void _setPinned(bool wanted) {
+    if (_keepAlive == null || _pinned == wanted) return;
+    _pinned = wanted;
+    _keepAliveOps = _keepAliveOps
+        .then((_) => wanted ? _keepAlive.acquire() : _keepAlive.release())
+        // A keep-alive that fails is a queue that runs unprotected, never a
+        // queue that stops.
+        .catchError((_) {});
+  }
+
   /// Enqueued on record-stop (D7).
+  ///
+  /// Pinned here rather than in the drain: at record-stop the app is still
+  /// foreground, which is the only moment Android reliably lets a service
+  /// start — and stop-then-swipe-away is precisely the gesture this fixes.
+  /// The drain drops the pin when it finds nothing left to do.
   Future<void> enqueueTranscription(String memoId) async {
     await _insertJob(JobType.transcribe, memoId);
+    // Before the drain, not inside it: by the time the loop reaches its
+    // first job the app may already be away, and Android only lets a
+    // *foreground* app raise a service. Here we are still on the turn that
+    // handled the stop button. (After the insert, so a failed write can't
+    // strand a hold nothing will release.)
+    _setPinned(true);
     unawaited(drain());
   }
 
@@ -314,8 +365,12 @@ class JobQueue {
   /// restart), after every enqueue, when a model finishes downloading, and
   /// when summaries are re-enabled. Awaiting joins the drain already in
   /// flight, if any.
-  Future<void> drain() => _draining ??=
-      _drainLoop().whenComplete(() => _draining = null);
+  Future<void> drain() => _draining ??= _drainLoop().whenComplete(() {
+        _draining = null;
+        // However the loop ended — idle queue, or a throw — the process has
+        // no further claim on being foreground.
+        _setPinned(false);
+      });
 
   Future<void> _drainLoop() async {
     if (!_recoveredOrphans) {
@@ -388,6 +443,10 @@ class JobQueue {
         await _scheduleWake();
         return;
       }
+      // Work in hand: hold the process foreground for as long as it lasts.
+      // A no-op when the record-stop path already pinned; the one that
+      // matters is a drain that started from a wake or a launch.
+      _setPinned(true);
       await _run(job);
       if (JobType.values.byName(job.type).retriesForever) {
         parked.add(job.id);
@@ -455,6 +514,7 @@ class JobQueue {
   void dispose() {
     _wake?.cancel();
     _wake = null;
+    _setPinned(false);
   }
 
   Future<void> _run(JobRow job) async {
@@ -567,10 +627,14 @@ class JobQueue {
   /// transcription" forever and, not being `failed`, offers no retry.
   /// Re-enter the pipeline at the right stage, like [retryEnrichment].
   Future<void> _reconcileStrandedMemos() async {
-    final live = await (_db.select(_db.jobs)
-          ..where((j) => j.status.isIn(['queued', 'running'])))
-        .get();
-    final covered = {for (final job in live) job.targetId};
+    // Memos first, jobs second — the order is the whole correctness argument.
+    // A record-stop lands the memo row and its job as two separate writes,
+    // and this sweep runs on the launch drain, so the two can interleave.
+    // Reading jobs first let a memo inserted in between look job-less and
+    // earn a *second* transcribe job: the same recording through whisper
+    // twice. This way round the worst case is a memo too young to be in the
+    // snapshot, which is exactly the memo whose own enqueue is already on
+    // its way.
     final rows = await (_db.select(_db.memos)
           ..where((m) => m.status.isIn([
                 MemoStatus.stored.name,
@@ -579,6 +643,10 @@ class JobQueue {
                 MemoStatus.summarizing.name,
               ])))
         .get();
+    final live = await (_db.select(_db.jobs)
+          ..where((j) => j.status.isIn(['queued', 'running'])))
+        .get();
+    final covered = {for (final job in live) job.targetId};
     for (final row in rows) {
       if (covered.contains(row.id)) continue;
       if (row.transcript == null) {

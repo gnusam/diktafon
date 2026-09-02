@@ -326,5 +326,7 @@
   "syncQueuedOffline": "Laptop asleep — queued until it answers.",
   "syncSendCassette": "Send to laptop",
   "notifRecording": "Recording memo",
-  "notifRecordingChannel": "Recording"
+  "notifRecordingChannel": "Recording",
+  "notifProcessing": "Finishing memos",
+  "notifProcessingChannel": "Background processing"
 }

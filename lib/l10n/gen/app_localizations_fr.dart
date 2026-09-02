@@ -741,4 +741,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Enregistrement';
+
+  @override
+  String get notifProcessing => 'Finalisation des mémos';
+
+  @override
+  String get notifProcessingChannel => 'Traitement en arrière-plan';
 }

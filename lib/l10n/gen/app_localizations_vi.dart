@@ -724,4 +724,10 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get notifRecordingChannel => 'Thu âm';
+
+  @override
+  String get notifProcessing => 'Đang hoàn tất ghi chú';
+
+  @override
+  String get notifProcessingChannel => 'Xử lý nền';
 }
