@@ -12,6 +12,7 @@ import '../../domain/palette.dart';
 import '../../domain/script.dart';
 import '../../domain/tape.dart';
 import '../../l10n/l10n.dart';
+import '../../services/system/power_state.dart';
 import '../theme/tape_colors.dart';
 import 'content_locale.dart';
 
@@ -29,7 +30,7 @@ class TranscriptView extends StatefulWidget {
     required this.playing,
     this.seekCount = 0,
     this.modelReady = false,
-    this.powerHold,
+    this.powerHeld = false,
     this.showSyncMarks = false,
     this.onSeekGlobalMs,
     this.onRetryMemo,
@@ -58,11 +59,16 @@ class TranscriptView extends StatefulWidget {
   /// still-untranscribed memo says while it waits (§14).
   final bool modelReady;
 
-  /// Fork addition — the battery level the inference gate is holding at,
-  /// null when it is open. A memo parked by a flat battery must say so:
-  /// "queued for transcription…" for an hour is indistinguishable from the
-  /// freeze bug the keep-alive fixed.
-  final int? powerHold;
+  /// Fork addition — whether the battery gate is holding the inference
+  /// stages. A memo parked by a flat battery must say so: "queued for
+  /// transcription…" for an hour is indistinguishable from the freeze bug
+  /// the keep-alive fixed.
+  ///
+  /// A bool, deliberately, and not the level it is holding at: the caption
+  /// names the level work *resumes* at, never the one it stopped at, and
+  /// handing this widget the current percentage invites printing the wrong
+  /// one — as it did, on the device, before the two were told apart.
+  final bool powerHeld;
   final ValueChanged<int>? onSeekGlobalMs;
 
   /// Failed memo tapped → re-enqueue (§14 retry affordance).
@@ -290,8 +296,10 @@ class _TranscriptViewState extends State<TranscriptView> {
           context,
           !widget.modelReady
               ? context.l10n.waitingForModel
-              : widget.powerHold != null
-                  ? context.l10n.waitingForPower(widget.powerHold!)
+              : widget.powerHeld
+                  // The threshold, not the current level: what the reader
+                  // needs is the condition for it to start again.
+                  ? context.l10n.waitingForPower(lowBatteryPercent)
                   : context.l10n.queuedForTranscription,
         ),
     };
