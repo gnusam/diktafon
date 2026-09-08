@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -7,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/db/database.dart';
 import '../../data/repositories/cassette_repository.dart';
+import '../../data/repositories/mappers.dart';
 import '../../data/repositories/memo_repository.dart';
 import '../../data/repositories/mappers.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -942,8 +942,8 @@ class JobQueue {
     final transcriptJson = row.transcript;
     if (transcriptJson == null) return; // can't happen; be safe
 
-    final transcript = Transcript.fromJson(
-        (jsonDecode(transcriptJson) as Map).cast<String, dynamic>());
+    final transcript = await transcriptsFromJsonAsync([transcriptJson])
+        .then((list) => list.first!);
     if (transcript.isEmpty) {
       // Nothing to summarize (§6.7) — reachable via retryEnrichment on a
       // silent memo; complete the enrichment instead of prompting the LLM.
@@ -1009,7 +1009,8 @@ class JobQueue {
         .get();
     final contributing = <(MemoRow, String)>[
       for (final row in rows)
-        if (row.memoSummary ?? _transcriptText(row.transcript)
+        if (row.memoSummary ??
+            await _transcriptText(row.transcript)
             case final text?)
           (row, text), // silent memos yield null and drop out
     ];
@@ -1056,10 +1057,10 @@ class JobQueue {
 
   /// The digest text of a gistless memo (§6.7): its short transcript,
   /// flattened to one line; null when the memo is silent.
-  String? _transcriptText(String? transcriptJson) {
+  Future<String?> _transcriptText(String? transcriptJson) async {
     if (transcriptJson == null) return null;
-    final transcript = Transcript.fromJson(
-        (jsonDecode(transcriptJson) as Map).cast<String, dynamic>());
+    final transcript =
+        (await transcriptsFromJsonAsync([transcriptJson])).first!;
     if (transcript.isEmpty) return null;
     return transcript.plainText.replaceAll('\n', ' ');
   }
