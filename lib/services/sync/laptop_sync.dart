@@ -235,15 +235,24 @@ class LaptopSync {
       // 401/403: wrong credentials or token — retrying cannot help, and a
       // silent forever-retry against a tunnel that rejects us is exactly
       // the failure the user must be told about.
-      final permanent = response.statusCode == 401 ||
-          response.statusCode == 403 ||
-          (response.statusCode >= 400 && response.statusCode < 500 &&
-              response.statusCode != 408 &&
-              response.statusCode != 429);
+      final status = response.statusCode;
+      if (status == 401 || status == 403) {
+        throw SyncException(_firstLine(body),
+            statusCode: status, permanent: true);
+      }
+      // The receiver answers every error in JSON. Any other 4xx comes from
+      // the relay in front of it — frps serves an HTML 404 for a tunnel
+      // with no laptop behind it (asleep, on battery, off the network).
+      // That is the everyday "laptop is off", not a refusal.
+      final fromReceiver =
+          response.headers.contentType?.mimeType == 'application/json';
+      if (!fromReceiver) throw SyncException('laptop unreachable');
       throw SyncException(
         _firstLine(body),
-        statusCode: response.statusCode,
-        permanent: permanent,
+        statusCode: status,
+        permanent: status >= 400 && status < 500 &&
+            status != 408 &&
+            status != 429,
       );
     } on SyncException {
       rethrow;

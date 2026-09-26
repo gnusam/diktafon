@@ -448,6 +448,25 @@ void main() {
     expect(receiver.pings, 1);
   });
 
+  test('the relay answering for an absent laptop is not a refusal', () async {
+    // frps, with no frpc behind the host, answers an HTML 404.
+    final relay = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    relay.listen((request) async {
+      request.response
+        ..statusCode = 404
+        ..headers.contentType = ContentType.html
+        ..write('<!DOCTYPE html>\n<html><title>Not Found</title></html>');
+      await request.response.close();
+    });
+    addTearDown(() => relay.close(force: true));
+    await expectLater(
+      LaptopSync().ping(SyncTarget.parse('http://127.0.0.1:${relay.port}')!),
+      throwsA(isA<SyncException>()
+          .having((e) => e.permanent, 'permanent', false)
+          .having((e) => e.toString(), 'message', 'laptop unreachable')),
+    );
+  });
+
   test('a receiver that is not one is a permanent failure', () async {
     receiver.status = 500;
     await expectLater(
