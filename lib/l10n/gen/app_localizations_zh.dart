@@ -556,6 +556,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranscribe => '重新转写';
 
   @override
+  String get newestFirst => '最新在前';
+
+  @override
   String get retranscribeTitle => '重新转写卡带？';
 
   @override
@@ -1302,6 +1305,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get retranscribe => '重新轉錄';
+
+  @override
+  String get newestFirst => '最新在前';
 
   @override
   String get retranscribeTitle => '重新轉錄卡帶？';

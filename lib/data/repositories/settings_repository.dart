@@ -12,6 +12,7 @@ class AppSettings {
     this.firstRunDone = false,
     this.syncUrl,
     this.syncAuto = false,
+    this.newestFirst = false,
   });
 
   /// Null → auto-detect per memo (D8), so one tape may mix languages; set →
@@ -40,6 +41,12 @@ class AppSettings {
   /// Sync is wired at all — the drain gate and every enqueue check this.
   bool get syncConfigured => (syncUrl ?? '').trim().isNotEmpty;
 
+  /// Reading order of a cassette's transcript: false → tape order, oldest
+  /// at the top (the order the tape plays in); true → the latest memo
+  /// first, for a tape you keep adding to and keep checking on. Playback,
+  /// the timeline and memo numbers stay in tape order either way.
+  final bool newestFirst;
+
   static AppSettings fromRows(Map<String, String> rows) => AppSettings(
         appLanguage: rows['appLanguage'],
         chimeEnabled: rows['chimeEnabled'] != '0',
@@ -52,6 +59,7 @@ class AppSettings {
         firstRunDone: rows['firstRunDone'] == '1',
         syncUrl: rows['syncUrl'],
         syncAuto: rows['syncAuto'] == '1',
+        newestFirst: rows['newestFirst'] == '1',
       );
 }
 
@@ -96,4 +104,6 @@ class SettingsRepository {
       _set('syncUrl', (url ?? '').trim().isEmpty ? null : url!.trim());
 
   Future<void> setSyncAuto(bool on) => _set('syncAuto', on ? '1' : '0');
+
+  Future<void> setNewestFirst(bool on) => _set('newestFirst', on ? '1' : '0');
 }

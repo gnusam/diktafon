@@ -572,6 +572,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get retranscribe => 'Transkripsi ulang';
 
   @override
+  String get newestFirst => 'Terbaru dulu';
+
+  @override
   String get retranscribeTitle => 'TRANSKRIPSI ULANG KASET?';
 
   @override
