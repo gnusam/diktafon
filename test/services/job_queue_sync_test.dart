@@ -4,6 +4,7 @@
 /// makes "the laptop is off" a wait rather than a failure.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -264,6 +265,41 @@ void main() {
 
     expect((await memoRow('m1')).syncedAt, isNotNull);
     expect(await uploadJobs(), isEmpty, reason: 'done jobs are deleted');
+  });
+
+  test('a finished memo leaves before the next whisper pass starts',
+      () async {
+    // Yesterday's memo is written up and only waiting for its trip; a fresh
+    // recording is queued for whisper behind it in time — and in front of
+    // it in the old FIFO, because its transcribe job is older than the
+    // upload job the enrichment just created.
+    final done = await seedMemo(
+        id: 'done', createdAt: DateTime.now().subtract(const Duration(days: 1)));
+    await memos.setTranscript(
+        done.id, shortTranscript('fr', 'hier'), MemoStatus.ready);
+    final fresh = await seedMemo(id: 'fresh');
+    await queue.enqueueTranscription(fresh.id); // older job…
+    await db.into(db.jobs).insert(JobRow(
+          id: 'up-done',
+          type: JobType.uploadMemo.name,
+          targetId: done.id,
+          status: 'queued',
+          attempts: 0,
+          createdAt: DateTime.now().millisecondsSinceEpoch + 1, // …newer job
+        ));
+
+    // Hold whisper: if the upload is behind it, it cannot have happened
+    // by the time the engine is first entered.
+    engine.gate = Completer<void>();
+    final draining = queue.drain();
+    while (engine.calls == 0) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    expect(receiver.uploads.map((u) => u.memo['id']), [done.id],
+        reason: 'the trip to the laptop came first');
+    engine.gate!.complete();
+    await draining;
+    expect((await memoRow(fresh.id)).status, MemoStatus.ready.name);
   });
 
   test('automatic off: nothing leaves until an explicit send', () async {

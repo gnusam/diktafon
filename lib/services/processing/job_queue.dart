@@ -506,7 +506,17 @@ class JobQueue {
               }
               return where;
             })
-            ..orderBy([(j) => OrderingTerm.asc(j.createdAt)])
+            ..orderBy([
+              // Fork: a memo that is ready to leave leaves before the next
+              // whisper pass begins. An upload is seconds and never gated;
+              // a transcription is minutes and may be held for hours by
+              // the battery gate — and a queue of them is exactly what a
+              // long session leaves behind. FIFO put the finished memo's
+              // trip to the laptop behind every one of them, so "done
+              // transcribing" and "on the laptop" drifted hours apart.
+              (j) => OrderingTerm.desc(j.type.equals(JobType.uploadMemo.name)),
+              (j) => OrderingTerm.asc(j.createdAt),
+            ])
             ..limit(1))
           .getSingleOrNull();
       if (job == null) {
@@ -574,7 +584,18 @@ class JobQueue {
               m.syncedAt.isNull() & m.createdAt.isBiggerOrEqualValue(since))
           ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
         .get();
+    // A memo still waiting for whisper is not lost, only not written up:
+    // its own pipeline files the trip when the transcript lands. Sending
+    // it now would carry it up half-made and again when done — and since
+    // uploads outrank whisper in the drain, "now" would come first.
+    final live = await (_db.select(_db.jobs)
+          ..where((j) =>
+              j.type.equals(JobType.transcribe.name) &
+              j.status.isIn(['queued', 'running'])))
+        .get();
+    final awaitingTranscript = {for (final job in live) job.targetId};
     for (final row in rows) {
+      if (awaitingTranscript.contains(row.id)) continue;
       await _insertUploadJob(row.id);
     }
   }
