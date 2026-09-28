@@ -12,7 +12,7 @@ class AppSettings {
     this.firstRunDone = false,
     this.syncUrl,
     this.syncAuto = false,
-    this.newestFirst = false,
+    this.newestFirst = true,
   });
 
   /// Null → auto-detect per memo (D8), so one tape may mix languages; set →
@@ -45,6 +45,11 @@ class AppSettings {
   /// at the top (the order the tape plays in); true → the latest memo
   /// first, for a tape you keep adding to and keep checking on. Playback,
   /// the timeline and memo numbers stay in tape order either way.
+  ///
+  /// Fork: on by default. Upstream ships it off, so nobody's tape flips
+  /// under them; here every tape is one that gets added to and checked on,
+  /// and scrolling to the bottom to see whether the last memo is written
+  /// up yet was the complaint that brought the setting in.
   final bool newestFirst;
 
   static AppSettings fromRows(Map<String, String> rows) => AppSettings(
@@ -59,7 +64,8 @@ class AppSettings {
         firstRunDone: rows['firstRunDone'] == '1',
         syncUrl: rows['syncUrl'],
         syncAuto: rows['syncAuto'] == '1',
-        newestFirst: rows['newestFirst'] == '1',
+        // Fork default (see the field): unset reads as on.
+        newestFirst: rows['newestFirst'] != '0',
       );
 }
 
