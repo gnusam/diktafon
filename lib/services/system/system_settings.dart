@@ -105,6 +105,25 @@ Future<bool> startProcessingForegroundService({
 
 /// Tears the processing service (and its notification) down. Safe to call
 /// when nothing is running.
+/// Redraws the processing notification with what whisper is doing: a line
+/// of [text] and, when known, a determinate bar at [percent]. Both null put
+/// it back to the indeterminate "working". Nothing happens when the service
+/// is not up — the platform side owns that check.
+Future<void> updateProcessingNotification(
+    {String? text, int? percent}) async {
+  if (!Platform.isAndroid) return;
+  try {
+    await _channel.invokeMethod<void>('updateProcessingNotification', {
+      'text': text,
+      'percent': percent,
+    });
+  } on PlatformException {
+    // A notification that fails to redraw is still the old notification.
+  } on MissingPluginException {
+    // As above.
+  }
+}
+
 Future<void> stopProcessingForegroundService() async {
   if (!Platform.isAndroid) return;
   try {

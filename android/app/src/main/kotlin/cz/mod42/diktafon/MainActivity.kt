@@ -104,6 +104,13 @@ class MainActivity : FlutterActivity() {
                         stopService(Intent(this, ProcessingForegroundService::class.java))
                         result.success(null)
                     }
+                    // Fork addition: whisper's position, for the same
+                    // notification — a no-op when the service is not up.
+                    "updateProcessingNotification" -> {
+                        ProcessingForegroundService.update(
+                            this, call.argument("text"), call.argument("percent"))
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

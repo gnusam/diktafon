@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../data/db/database.dart';
 import '../data/files/audio_file_store.dart';
@@ -201,6 +202,19 @@ class AndroidProcessingKeepAlive implements ProcessingKeepAlive {
 
   @override
   Future<void> release() => stopProcessingForegroundService();
+
+  /// The memo's own caption, word for word, on the notification — and
+  /// whisper's figure as its bar once there is one.
+  @override
+  Future<void> report(double? fraction) {
+    if (fraction == null) return updateProcessingNotification();
+    final l10n = systemL10n();
+    if (fraction <= 0) return updateProcessingNotification(text: l10n.transcribing);
+    final percent = NumberFormat.percentPattern(l10n.localeName).format(fraction);
+    return updateProcessingNotification(
+        text: l10n.transcribingProgress(percent),
+        percent: (fraction * 100).round());
+  }
 }
 
 /// Null off Android: iOS suspends the process whatever we ask for, and a

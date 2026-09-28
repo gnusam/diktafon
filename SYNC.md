@@ -77,6 +77,13 @@ typed address, for a desktop build or a laptop on the LAN.
 - A memo is queued for sending when it reaches its final content — after the
   gist, and after the WAV→AAC transcode, so the archival `.m4a` is what
   travels.
+- **A finished memo leaves before the next whisper pass starts.** The drain
+  picks uploads ahead of everything else (oldest first among themselves):
+  an upload is seconds and never gated, a transcription is minutes and may
+  wait hours on the battery gate, and a long session leaves a queue of
+  them. Before this, "done transcribing" and "on the laptop" could drift
+  hours apart. The launch sweep leaves a memo still waiting on whisper to
+  its own pipeline rather than send it half-made.
 - **An unreachable laptop is not an error.** The job is parked and retried
   (30 s, then longer, capped at a quarter of an hour), across app restarts,
   for as long as it takes. Memos stay marked ↑ until they land; Settings
@@ -103,7 +110,11 @@ So the queue holds a `dataSync` foreground service for exactly as long as it
 has a job in hand: **"Finalisation des mémos"** in the notification shade is
 the app working while you are elsewhere. It appears only when there is real
 work, and goes as soon as the queue runs dry — the launch drain that finds
-nothing to do never raises it.
+nothing to do never raises it. While whisper is on a memo the notification
+also carries its progress — "transcription en cours… 42 %" and a bar —
+the same figure the memo shows under its heading and its cassette's card
+shows on the home grid. It is whisper's own number, reported once per
+~30 s decoding window, so a short memo may finish before it ever moves.
 
 Two things it deliberately does **not** do:
 
@@ -216,6 +227,20 @@ The endpoint is reachable from the internet, so:
 TLS terminates on the server, so the audio is briefly in clear *in memory*
 there before re-entering the (encrypted) tunnel; it is never written to the
 server's disk.
+
+## Two fork defaults
+
+Both are upstream features (pull requests #35 and #36 on jaromiru/diktafon)
+that this fork simply sets the other way:
+
+- **Newest first.** A cassette's transcript reads latest memo at the top.
+  Upstream ships tape order and offers the flip in the cassette's ⋮ menu;
+  here every tape is one that gets added to and checked on, so the flip is
+  the default and the menu entry turns it off. Memo numbers, the timeline
+  and playback stay in tape order either way.
+- **Progress in the notification.** The transcription progress the upstream
+  change draws in the app is also written into the fork's foreground
+  notification, since that is where you look when you are in another app.
 
 ## When something does not arrive
 

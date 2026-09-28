@@ -47,6 +47,15 @@ class FakeKeepAlive implements ProcessingKeepAlive {
     held = false;
     calls.add('release');
   }
+
+  /// Every progress report, in order — only ever between the two above.
+  final reports = <double?>[];
+
+  @override
+  Future<void> report(double? fraction) async {
+    expect(held, isTrue, reason: 'a report while not held');
+    reports.add(fraction);
+  }
 }
 
 void main() {
@@ -109,6 +118,21 @@ void main() {
     await pumpEventQueue();
 
     expect(keepAlive.held, isFalse);
+    expect(keepAlive.calls, ['acquire', 'release']);
+  });
+
+  test('whisper\'s figure reaches the handle only while held, ending idle',
+      () async {
+    await seedMemo('m1');
+    engine.progressSteps = const [0.25, 0.75];
+
+    await queue.enqueueTranscription('m1');
+    await queue.drain();
+    await pumpEventQueue();
+
+    // On it (0), each report, then off it (null) — all before the release
+    // (the fake asserts that on every call).
+    expect(keepAlive.reports, [0.0, 0.25, 0.75, null]);
     expect(keepAlive.calls, ['acquire', 'release']);
   });
 

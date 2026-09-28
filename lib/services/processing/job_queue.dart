@@ -75,6 +75,11 @@ const int gistTokenThreshold = 117;
 abstract class ProcessingKeepAlive {
   Future<void> acquire();
   Future<void> release();
+
+  /// Where whisper is, for the handle's own display (the Android
+  /// notification): a fraction 0..1 while a memo is on the engine, null
+  /// once it is off. Only ever called between [acquire] and [release].
+  Future<void> report(double? fraction) async {}
 }
 
 /// What the transcription engine is doing right now: which memo, on which
@@ -184,6 +189,15 @@ class JobQueue {
   void _reportProgress(TranscriptionProgress? progress) {
     _currentProgress = progress;
     if (!_progress.isClosed) _progress.add(progress);
+    // The keep-alive's notification is the one place the user sees this
+    // from another app. Same chain as acquire/release, so a report can
+    // never overtake the acquire it belongs to or trail the release.
+    final keepAlive = _keepAlive;
+    if (keepAlive == null || !_pinned) return;
+    final fraction = progress?.fraction;
+    _keepAliveOps = _keepAliveOps
+        .then((_) => _pinned ? keepAlive.report(fraction) : null)
+        .catchError((_) {});
   }
 
 
