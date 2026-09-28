@@ -272,6 +272,8 @@ class _CassetteScreenState extends ConsumerState<CassetteScreen>
                       showSyncMarks:
                           ref.watch(settingsProvider).value?.syncConfigured ??
                               false,
+                      transcriptionProgress:
+                          ref.watch(transcriptionProgressProvider).value,
                       onSeekGlobalMs: (ms) => player.seekGlobal(ms),
                       onRetryMemo: (memoId) => ref
                           .read(jobQueueProvider)

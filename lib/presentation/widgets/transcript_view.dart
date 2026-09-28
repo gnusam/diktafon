@@ -13,8 +13,11 @@ import '../../domain/script.dart';
 import '../../domain/tape.dart';
 import '../../l10n/l10n.dart';
 import '../../services/system/power_state.dart';
+import '../../services/processing/job_queue.dart'
+    show TranscriptionProgress;
 import '../theme/tape_colors.dart';
 import 'content_locale.dart';
+import 'ink_progress_bar.dart';
 
 /// The transcript of the whole tape (§5.3): memo boundaries as light dashed
 /// dividers carrying "Memo N — date time" and the memo's gist; every word is
@@ -32,6 +35,7 @@ class TranscriptView extends StatefulWidget {
     this.modelReady = false,
     this.powerHeld = false,
     this.showSyncMarks = false,
+    this.transcriptionProgress,
     this.onSeekGlobalMs,
     this.onRetryMemo,
     this.onEditMemo,
@@ -69,6 +73,9 @@ class TranscriptView extends StatefulWidget {
   /// handing this widget the current percentage invites printing the wrong
   /// one — as it did, on the device, before the two were told apart.
   final bool powerHeld;
+  /// Where the engine is right now (any cassette) — the memo it names gets
+  /// a determinate bar in place of the shimmer once a figure exists.
+  final TranscriptionProgress? transcriptionProgress;
   final ValueChanged<int>? onSeekGlobalMs;
 
   /// Failed memo tapped → re-enqueue (§14 retry affordance).
@@ -280,7 +287,7 @@ class _TranscriptViewState extends State<TranscriptView> {
       );
     }
     return switch (memo.status) {
-      MemoStatus.transcribing => const _ShimmerRows(),
+      MemoStatus.transcribing => _transcribingBody(context, memo),
       MemoStatus.failed => _caption(
           context,
           context.l10n.transcriptionFailedRetry,
@@ -303,6 +310,38 @@ class _TranscriptViewState extends State<TranscriptView> {
                   : context.l10n.queuedForTranscription,
         ),
     };
+  }
+
+  /// The engine is on this memo: the shimmer until it reports a position,
+  /// then the caption with its figure and an ink bar. Whisper reports once
+  /// per decoding window (~30 s of audio), so a short memo may never leave
+  /// the shimmer — better that than a bar that invents a number.
+  Widget _transcribingBody(BuildContext context, Memo memo) {
+    final progress = widget.transcriptionProgress;
+    final fraction =
+        progress != null && progress.memoId == memo.id ? progress.fraction : 0.0;
+    if (fraction <= 0) return const _ShimmerRows();
+    final percent = NumberFormat.percentPattern(
+            Localizations.localeOf(context).toString())
+        .format(fraction);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.transcribingProgress(percent),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontStyle: FontStyle.italic,
+              color: context.tape.ink2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          InkProgressBar(fraction: fraction),
+        ],
+      ),
+    );
   }
 
   Widget _caption(BuildContext context, String text, {VoidCallback? onTap}) =>

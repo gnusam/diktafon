@@ -161,6 +161,12 @@ final powerHoldProvider = Provider<int?>((ref) =>
 final pendingEnrichmentProvider = StreamProvider<int>(
     (ref) => ref.watch(jobQueueProvider).watchPendingEnrichment());
 
+/// Which memo whisper is on and how far it has got — null while the engine
+/// idles. The bar under a transcribing memo and the busy line on its
+/// cassette's card both read this.
+final transcriptionProgressProvider = StreamProvider<TranscriptionProgress?>(
+    (ref) => ref.watch(jobQueueProvider).watchTranscriptionProgress());
+
 /// §6.4: WAV capture → archival AAC (MediaCodec/AVAssetWriter on mobile,
 /// ffmpeg CLI on desktop).
 final audioTranscoderProvider =
